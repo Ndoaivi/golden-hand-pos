@@ -1,4 +1,4 @@
-# Phase 1 validation — 11 October 2026 (Asia/Jakarta)
+# Phase 1 validation — 12 October 2026 (Asia/Jakarta)
 
 ## Automated results
 
@@ -7,7 +7,7 @@
 | `npm run build` | PASS — strict TypeScript and Vite bundle |
 | `npm run lint` | PASS — no ESLint errors/warnings |
 | `npm test` | PASS — 27 domain tests |
-| `npm run test:e2e` | PASS — 20 browser checks, 0 uncaught page errors |
+| `npm run test:e2e` | PASS — 24 browser checks, 0 uncaught page errors |
 
 Production bundle: approximately 275 kB JavaScript (83 kB gzip), 44 kB CSS (9 kB gzip), plus the 69 kB original JPEG. No remote runtime fonts, images, payment SDKs, or charts are loaded.
 
@@ -17,7 +17,7 @@ Exactly five Standard slots and one shared rate; rejection of alternate classifi
 
 ## Browser coverage
 
-Original logo in integrated brand areas; light theme; five Standard table cashier UI; single owner rental setting; exact legacy backup and one-time migration; cashier editor restrictions; tablet layout with visible checkout/payment actions in both landscape sizes; expired cutoff/F&B lock and extend; postpaid start and Escape cancellation; F&B stock deduction; partial cash plus simulated settlement; paid receipt/logo/print CSS; checkout/cleaning/ready; shared owner table monitoring; cross-tab owner rate sync and unchanged session snapshot; owner prices/HPP/restock; approval demo; staff profile demo; empty dated reports; CSV export; mobile/portrait tablet overflow checks; reload persistence; production offline shell reload; corrupt localStorage recovery.
+Original logo in integrated brand areas; light theme; five Standard table cashier UI; single owner rental setting; exact legacy backup and one-time migration; cashier editor/reset restrictions; portal-specific entry/logout/reload; URL and Back/Forward navigation do not grant the opposite demo role; legacy shared owner role ignored on tablet entry; owner-adjusted product price appears in the separate cashier menu; tablet layout with visible checkout/payment actions in both landscape sizes; expired cutoff/F&B lock and extend; postpaid start and Escape cancellation; F&B stock deduction; partial cash plus simulated settlement; paid receipt/logo/print CSS; checkout/cleaning/ready; shared owner table monitoring; cross-tab owner rate sync and unchanged session snapshot; owner prices/HPP/restock; approval demo; staff profile demo; empty dated reports; CSV export; mobile/portrait tablet overflow checks; reload persistence; production offline shell reload; corrupt localStorage recovery.
 
 Chromium ran in headless touch-emulation mode. Screenshots are stored in `docs/previews`. Layout widths checked: 1280×800, 1024×768, 390×844 and 768×1024. The suite creates and closes a temporary localhost server, and never deploys.
 

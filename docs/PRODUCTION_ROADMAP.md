@@ -1,7 +1,7 @@
 # Work remaining after Phase 1 approval
 
 1. Confirm operational policy: the actual shared rate for five Standard tables, grace period, allowed extensions, postpaid limits, taxes/service fees, cancellation rules, staff permissions, and refund/void limits.
-2. Implement Supabase Auth and server-enforced venue/staff RBAC. Restrict database privileges/RLS, remove the demo role chooser and browser settlement controls, add login/session expiry/device logout.
+2. Implement Supabase Auth and server-enforced venue/staff RBAC. Restrict database privileges/RLS, replace the separate `/pos` and `/admin` demo confirmations with staff login, validate each role on every server operation, and remove browser settlement controls, add login/session expiry/device logout.
 3. Build the Cloudflare Workers API and PostgreSQL migrations. Server timestamps, unique open session constraints, price/HPP snapshots, atomic stock/charge/payment operations, idempotency keys, row locks, protected audit and safe error responses are required.
 4. Replace browser data with one authoritative store, authenticated realtime or polling, recovery after device sleep/network loss, quote expiry, and robust conflict handling. Add monitoring, backups and restore rehearsal.
 5. Implement cash ledger and allocation, prepaid/postpaid/mixed reconciliation, shift carryover and cash differences, refund/void reversal entries, inventory movements and approval authorization.

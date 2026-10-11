@@ -1,5 +1,5 @@
 // Cache only the static shell. Demo transactions live in localStorage, never in this cache.
-const CACHE = 'golden-hand-shell-v2';
+const CACHE = 'golden-hand-shell-v3';
 const SHELL = ['/', '/brand/golden-hand-original.jpg', '/manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

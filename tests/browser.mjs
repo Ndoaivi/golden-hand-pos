@@ -38,6 +38,7 @@ try {
   await page.goto(url);await page.getByRole('button',{name:'Cashier POS'}).waitFor();
   assert.ok(await page.locator('.login-story img').evaluate(el=>el.complete&&el.naturalWidth===1280));
   await page.screenshot({path:resolve(screenshots,'login.png'),fullPage:true});pass('login displays supplied, undistorted original logo');
+  assert.equal(await page.getByRole('button',{name:'Owner Dashboard',exact:true}).count(),0);
   await page.getByRole('button',{name:'Cashier POS'}).click();
   assert.equal(await page.locator('.table-card').count(),5);assert.ok((await state()).tables.every(t=>t.kind==='Standard'));assert.deepEqual((await state()).rates,{Standard:80000});assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).colorScheme),'light');assert.equal(await page.getByRole('button',{name:'Edit harga',exact:true}).count(),0);
   await noOverflow();await cashierActionsVisible();await page.screenshot({path:resolve(screenshots,'cashier-tablet.png'),fullPage:true});pass('cashier five-table Standard dashboard, light theme, read-only pricing and visible tablet actions');
@@ -70,7 +71,8 @@ try {
   await page.emulateMedia({media:'print'});await page.screenshot({path:resolve(screenshots,'receipt-80mm.png'),fullPage:true});await page.emulateMedia({media:'screen'});await closeDialog();pass('paid receipt uses original logo and 80mm print stylesheet');
   await page.locator('.session-panel').getByRole('button',{name:'Selesaikan & checkout'}).click();assert.equal((await state()).tables[2].state,'cleaning');
   await page.getByRole('button',{name:'Tandai meja siap'}).click();assert.equal((await state()).tables[2].state,'available');pass('checkout archives charges/payments and requires cleaning before ready');
-  await page.locator('.sidebar-tool').filter({hasText:'Buka demo owner'}).click();assert.equal(await page.locator('.owner-tables .table-card').count(),5);
+  assert.equal(await page.getByRole('button',{name:'Buka demo owner',exact:false}).count(),0);assert.equal(await page.getByRole('button',{name:'Reset demo',exact:true}).count(),0);
+  await page.goto(`${url}/admin`);await page.getByRole('button',{name:'Owner Dashboard',exact:true}).click();assert.equal(await page.locator('.owner-tables .table-card').count(),5);
   await cleanPreview();await page.screenshot({path:resolve(screenshots,'owner-desktop.png'),fullPage:true});await noOverflow();pass('owner overview monitors the same five tables');
   const ownerTab=await context.newPage();await ownerTab.goto(`${url}/admin`);await ownerTab.getByRole('button',{name:'Owner Dashboard'}).click();
   await ownerTab.getByRole('button',{name:'Tarif meja',exact:true}).click();assert.equal(await ownerTab.locator('.rate-card').count(),1);await ownerTab.getByRole('button',{name:'Ubah tarif',exact:false}).first().click();
@@ -82,6 +84,14 @@ try {
   await dialog().getByLabel('Harga jual (Rp)').fill('9000');await dialog().getByLabel('HPP / unit (Rp)').fill('4000');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();assert.equal((await state()).products[0].price,9000);
   await page.getByRole('button',{name:'Stok ±',exact:true}).first().click();await dialog().getByLabel('Jumlah unit').fill('10');await dialog().getByLabel('Alasan perubahan').fill('Restock supplier');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();
   assert.equal((await state()).products[0].stock,44);pass('owner price/HPP and inventory restock are editable and audited');
+  const cashierTab=await context.newPage();
+  await cashierTab.goto(`${url}/pos`);await cashierTab.getByRole('button',{name:'Cashier POS',exact:true}).click();
+  await cashierTab.getByRole('button',{name:'Food & beverage',exact:true}).click();
+  const mineral=cashierTab.getByRole('button',{name:/Air Mineral 600ml/});
+  assert.match(await mineral.innerText(),/9\.000/);
+  assert.equal(await cashierTab.getByRole('button',{name:'Edit harga',exact:true}).count(),0);
+  assert.equal(await cashierTab.getByRole('button',{name:'Buka demo owner',exact:false}).count(),0);
+  await cashierTab.close();pass('separate cashier portal uses owner-adjusted product price without price editors or owner switch');
   await page.getByRole('button',{name:/Refund & void/}).click();await page.getByRole('button',{name:'Setujui demo'}).click();assert.equal((await state()).approvals[0].status,'approved');pass('refund/void approval clearly remains a status-only demo');
   await page.getByRole('button',{name:'Staf & shift',exact:true}).click();await page.getByRole('button',{name:'Tambah staf',exact:true}).click();
   await dialog().getByLabel('Nama staf').fill('Kasir Baru');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();assert.equal((await state()).staff.length,4);pass('staff profile management is local and labelled as demo');
@@ -99,7 +109,7 @@ try {
   try {
     const migrationPage=await migrationContext.newPage();
     migrationPage.on('pageerror',e=>errors.push(e.message));
-    await migrationPage.goto(url);await migrationPage.getByRole('button',{name:'Owner Dashboard'}).waitFor();
+    await migrationPage.goto(`${url}/admin`);await migrationPage.getByRole('button',{name:'Owner Dashboard'}).waitFor();
     const legacy=await state();legacy.version=1;legacy.rates.VIP=120000;
     legacy.tables[1].kind='VIP';legacy.tables[1].session.rate=120000;
     legacy.tables[1].session.charges[0].amount=360000;
@@ -117,6 +127,41 @@ try {
     assert.equal(await migrationPage.evaluate(key=>JSON.parse(localStorage.getItem(key)).revision,storageKey),migrated.data.revision);
     pass('legacy browser data migrates once with exact backup and unchanged financial snapshots');
   } finally { await migrationContext.close(); }
+  const accessContext=await browser.newContext({viewport:{width:1280,height:800}});
+  try {
+    const accessPage=await accessContext.newPage();
+    accessPage.on('pageerror',e=>errors.push(e.message));
+    await accessPage.addInitScript(()=>sessionStorage.setItem('golden-hand-demo-role','owner'));
+    await accessPage.goto(url);await accessPage.getByRole('button',{name:'Cashier POS',exact:true}).waitFor();
+    assert.equal(new URL(accessPage.url()).pathname,'/pos');
+    assert.equal(await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).count(),0);
+    assert.equal(await accessPage.locator('.owner-shell').count(),0);
+    await accessPage.getByRole('button',{name:'Cashier POS',exact:true}).click();
+    await accessPage.getByRole('button',{name:'Meja & sesi',exact:true}).waitFor();
+    assert.equal(await accessPage.getByRole('button',{name:'Reset demo',exact:true}).count(),0);
+    pass('tablet entry defaults to cashier and ignores legacy owner role; no owner choice or reset');
+    await accessPage.evaluate(()=>{history.pushState({},'', '/admin');window.dispatchEvent(new PopStateEvent('popstate'));});
+    await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).waitFor();
+    assert.equal(await accessPage.locator('.owner-shell').count(),0);
+    assert.equal(await accessPage.getByRole('button',{name:'Cashier POS',exact:true}).count(),0);
+    await accessPage.goBack();await accessPage.getByRole('button',{name:'Meja & sesi',exact:true}).waitFor();
+    await accessPage.goForward();await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).waitFor();
+    await accessPage.screenshot({path:resolve(screenshots,'owner-login.png'),fullPage:true});
+    await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).click();
+    await accessPage.getByRole('heading',{name:'Ringkasan operasional'}).waitFor();
+    pass('URL/history changes do not enter owner demo using the cashier session');
+    await accessPage.getByRole('button',{name:'Keluar demo',exact:true}).click();
+    assert.equal(new URL(accessPage.url()).pathname,'/admin');
+    await accessPage.reload();await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).waitFor();
+    assert.equal(await accessPage.getByRole('button',{name:'Cashier POS',exact:true}).count(),0);
+    await accessPage.goto(`${url}/pos`);await accessPage.getByRole('button',{name:'Meja & sesi',exact:true}).waitFor();
+    await accessPage.getByRole('button',{name:'Keluar demo',exact:true}).click();
+    assert.equal(new URL(accessPage.url()).pathname,'/pos');
+    await accessPage.reload();await accessPage.getByRole('button',{name:'Cashier POS',exact:true}).waitFor();
+    assert.equal(await accessPage.locator('.cashier-shell').count(),0);
+    assert.equal(await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).count(),0);
+    pass('portal-specific logout and reload keep entry pages and demo sessions separate');
+  } finally { await accessContext.close(); }
   await page.evaluate(key=>localStorage.setItem(key,'{"invalid":true}'),storageKey);await page.reload();await page.getByRole('heading',{name:'Data demo tidak dapat dimuat'}).waitFor();pass('corrupt localStorage displays recoverable error without silently deleting data');
   assert.deepEqual(errors,[]);console.log(`\n${count} browser checks passed; ${errors.length} uncaught page errors. Screenshots: docs/previews/`);
 } finally { await context.close();await browser.close();await new Promise(resolve=>server.close(resolve)); }

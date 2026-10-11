@@ -7,6 +7,7 @@
 - Keep exactly five Standard tables and one rental rate configuration. Preserve historical price/HPP snapshots and unpaid balances, including legacy demo migration.
 - Keep the interface light, functional and free of decorative marketing panels. Use the original logo within a continuous brand area.
 - Keep original logo proportions; do not replace or recreate the supplied logo.
-- The frontend's role chooser and local action restrictions are demo conveniences, not security boundaries. Never describe them as production RBAC.
+- Keep cashier `/pos` and owner `/admin` entry pages separate, without role-switch buttons. Owner edits rates/prices/HPP; cashier has no configuration or reset controls.
+- The frontend's portal confirmations and local action restrictions are demo conveniences, not security boundaries. Never describe them as production RBAC.
 - Keep UI, persistence, shared rules, future API, and future database concerns separate.
 - Before handover, run build, lint, domain tests and applicable browser tests. Record limitations truthfully.

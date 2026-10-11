@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { date, openShift, time } from '../../../packages/domain/index.ts';
 import type { Action, Role } from '../../../packages/domain/index.ts';
 import { downloadData, useDemoStore } from './data/store.ts';
+import { enterDemoPortal, leaveDemoPortal, portalFromPath, portalPaths, readDemoRole } from './data/demoAccess.ts';
 import { Brand, Empty, Icon } from './components/ui.tsx';
 import { Dialogs } from './components/dialogs.tsx';
 import type { Dialog } from './components/dialogs.tsx';
@@ -10,17 +11,11 @@ import { Cashier } from './features/cashier/Cashier.tsx';
 import { Owner } from './features/owner/Owner.tsx';
 const cashierNav = [{ id: 'tables', label: 'Meja & sesi', icon: 'tables' }, { id: 'menu', label: 'Food & beverage', icon: 'coffee' }, { id: 'transactions', label: 'Transaksi & shift', icon: 'receipt' }];
 const ownerNav = [{ id: 'overview', label: 'Overview', icon: 'overview' }, { id: 'tables', label: 'Monitoring meja', icon: 'tables' }, { id: 'reports', label: 'Laporan penjualan', icon: 'chart' }, { id: 'catalog', label: 'Katalog & stok', icon: 'inventory' }, { id: 'pricing', label: 'Tarif meja', icon: 'wallet' }, { id: 'approvals', label: 'Refund & void', icon: 'shield' }, { id: 'staff', label: 'Staf & shift', icon: 'staff' }, { id: 'audit', label: 'Audit trail', icon: 'history' }];
-function storedRole(): Role | null { try {
-    const v = sessionStorage.getItem('golden-hand-demo-role');
-    return v === 'cashier' || v === 'owner' ? v : null;
-}
-catch {
-    return null;
-} }
 export default function App() {
     const store = useDemoStore();
-    const [role, setRole] = useState<Role | null>(storedRole);
-    const [view, setView] = useState(storedRole() === 'owner' ? 'overview' : 'tables');
+    const [portal, setPortal] = useState<Role>(() => portalFromPath(window.location.pathname));
+    const [role, setRole] = useState<Role | null>(() => readDemoRole(portalFromPath(window.location.pathname)));
+    const [view, setView] = useState(portalFromPath(window.location.pathname) === 'owner' ? 'overview' : 'tables');
     const [selected, setSelected] = useState(1);
     const [dialog, setDialog] = useState<Dialog | null>(null);
     const [now, setNow] = useState(Date.now());
@@ -40,40 +35,40 @@ export default function App() {
     useEffect(() => { if (!toast)
         return; const timeout = setTimeout(() => setToast(null), 5000); return () => clearTimeout(timeout); }, [toast]);
     useEffect(() => {
+        const initial = portalFromPath(window.location.pathname);
+        window.history.replaceState({}, '', portalPaths[initial]);
         const pop = () => {
-            const next: Role | null = window.location.pathname === '/admin' ? 'owner' : window.location.pathname === '/pos' ? 'cashier' : null;
-            try {
-                if (next)
-                    sessionStorage.setItem('golden-hand-demo-role', next);
-                else
-                    sessionStorage.removeItem('golden-hand-demo-role');
-            }
-            catch { /* Demo can still run without session persistence. */ }
-            setRole(next);
+            const next = portalFromPath(window.location.pathname);
+            window.history.replaceState({}, '', portalPaths[next]);
+            setPortal(next);
+            setRole(readDemoRole(next));
             setView(next === 'owner' ? 'overview' : 'tables');
             setDialog(null);
+            setNavOpen(false);
+            setToast(null);
         };
         window.addEventListener('popstate', pop);
         return () => window.removeEventListener('popstate', pop);
     }, []);
-    function enter(next: Role) {
-        setRole(next);
-        setView(next === 'owner' ? 'overview' : 'tables');
+    function enter() {
+        setRole(portal);
+        setView(portal === 'owner' ? 'overview' : 'tables');
         setNavOpen(false);
         setDialog(null);
-        try {
-            sessionStorage.setItem('golden-hand-demo-role', next);
-        }
-        catch { /* Nonpersistent preview. */ }
-        window.history.pushState({}, '', next === 'owner' ? '/admin' : '/pos');
+        enterDemoPortal(portal);
+        window.history.replaceState({}, '', portalPaths[portal]);
         window.scrollTo({ top: 0 });
     }
-    function logout() { try {
-        sessionStorage.removeItem('golden-hand-demo-role');
+    function logout() {
+        leaveDemoPortal(portal);
+        setRole(null);
+        setDialog(null);
+        setNavOpen(false);
+        setToast(null);
+        window.scrollTo({ top: 0 });
     }
-    catch { /* Nonpersistent preview. */ } setRole(null); setDialog(null); window.history.pushState({}, '', '/'); }
-    function act(a: Action) { if (!role)
-        throw new Error('Pilih role demo terlebih dahulu.'); store.dispatch(a, role); setToast({ text: a.type === 'payment' && a.method === 'cash' ? `Tunai ${new Intl.NumberFormat('id-ID').format(a.amount)} dicatat · kembalian ${new Intl.NumberFormat('id-ID').format(a.tendered - a.amount)}` : 'Perubahan demo berhasil disimpan.', error: false }); }
+    function act(a: Action) { if (!role || role !== portal)
+        throw new Error('Buka demo sesuai pintu masuk terlebih dahulu.'); store.dispatch(a, role); setToast({ text: a.type === 'payment' && a.method === 'cash' ? `Tunai ${new Intl.NumberFormat('id-ID').format(a.amount)} dicatat · kembalian ${new Intl.NumberFormat('id-ID').format(a.tendered - a.amount)}` : 'Perubahan demo berhasil disimpan.', error: false }); }
     function safeAction(a: Action) { try {
         act(a);
     }
@@ -89,14 +84,14 @@ export default function App() {
         <div className="button-row">
         <button className="button" onClick={downloadData}>Ekspor data tersimpan</button>
         <button className="button primary" onClick={() => window.location.reload()}>Coba lagi</button>
-        <button className="button danger" onClick={() => { if (window.confirm('Hapus data demo browser ini dan buat ulang data contoh? Ekspor backup terlebih dahulu.')) {
+        {portal === 'owner' && <button className="button danger" onClick={() => { if (window.confirm('Hapus data demo browser ini dan buat ulang data contoh? Ekspor backup terlebih dahulu.')) {
             try {
                 store.reset();
             }
             catch (e) {
                 setToast({ text: e instanceof Error ? e.message : 'Penyimpanan tidak tersedia.', error: true });
             }
-        } }}>Reset data demo</button>
+        } }}>Reset data demo</button>}
         </div>
         </Empty>{toast && <p role="alert">{toast.text}</p>}</div>;
     if (!store.state)
@@ -115,32 +110,22 @@ export default function App() {
         <div className="login-panel">
         <div className="login-panel-copy">
         <span className="eyebrow">GOLDEN HAND MAHJONG</span>
-        <h2>Buka workspace</h2>
-        <p>Pilih antarmuka untuk menjelajahi demo.</p>
+        <h2>{portal === 'owner' ? 'Panel owner' : 'POS kasir'}</h2>
+        <p>{portal === 'owner' ? 'Kelola tarif meja, harga produk, stok, dan laporan.' : 'Kelola sesi meja, pesanan, pembayaran, dan shift.'}</p>
         </div>
-        <button className="login-role" onClick={() => enter('cashier')}>
+        <button className="login-role" onClick={enter} aria-labelledby="portal-name" aria-describedby="portal-description">
         <span className="role-icon">
-        <Icon name="tables" size={25}/>
+        <Icon name={portal === 'owner' ? 'overview' : 'tables'} size={25}/>
         </span>
         <span>
-        <strong>Cashier POS</strong>
-        <small>Sesi meja, F&B, pembayaran & shift</small>
-        </span>
-        <Icon name="arrow"/>
-        </button>
-        <button className="login-role" onClick={() => enter('owner')}>
-        <span className="role-icon">
-        <Icon name="overview" size={25}/>
-        </span>
-        <span>
-        <strong>Owner Dashboard</strong>
-        <small>Monitoring, harga, stok & laporan</small>
+        <strong id="portal-name">{portal === 'owner' ? 'Owner Dashboard' : 'Cashier POS'}</strong>
+        <small id="portal-description">{portal === 'owner' ? 'Monitoring, harga, stok & laporan' : 'Sesi meja, F&B, pembayaran & shift'}</small>
         </span>
         <Icon name="arrow"/>
         </button>
         <div className="login-demo-note">
         <Icon name="shield" size={17}/>
-        <p>Preview Phase 1 · data contoh lokal.<br />Pilihan role ini belum merupakan autentikasi. Gunakan hanya untuk evaluasi.</p>
+        <p>Preview Phase 1 · data contoh lokal.<br />Pintu masuk terpisah belum mengamankan akses. Login akun dan otorisasi server belum terpasang.</p>
         </div>
         </div>
         </div>;
@@ -166,11 +151,8 @@ export default function App() {
     <strong>Demo workspace</strong>
     <small>Data lokal · Phase 1</small>
     </div>
-    <button className="sidebar-tool" onClick={() => enter(role === 'owner' ? 'cashier' : 'owner')}>
-    <Icon name={role === 'owner' ? 'tables' : 'crown'} size={16}/>{role === 'owner' ? 'Buka demo kasir' : 'Buka demo owner'}<Icon name="arrow" size={14}/>
-    </button>
-    <button className="sidebar-tool" onClick={() => setDialog({ kind: 'reset' })}>
-    <Icon name="history" size={16}/>Reset demo</button>
+    {role === 'owner' && <button className="sidebar-tool" onClick={() => setDialog({ kind: 'reset' })}>
+    <Icon name="history" size={16}/>Reset demo</button>}
     <div className="profile">
     <span className="profile-avatar">{role === 'owner' ? 'GH' : 'RP'}</span>
     <div>
@@ -208,7 +190,7 @@ export default function App() {
     <span>GOLDEN HAND MAHJONG</span>
     <span>Phase 1 preview · penyimpanan lokal</span>
     </footer>
-    </div>{dialog && <Dialogs key={`${dialog.kind}-${dialog.tableId}-${dialog.productId}-${dialog.staffId}`} dialog={dialog} state={state} now={now} onClose={() => setDialog(null)} onAction={act} onReset={() => { store.reset(); setToast({ text: 'Data contoh dipulihkan.', error: false }); }}/>} {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role={toast.error ? 'alert' : 'status'}>
+    </div>{dialog && <Dialogs key={`${dialog.kind}-${dialog.tableId}-${dialog.productId}-${dialog.staffId}`} dialog={dialog} state={state} now={now} onClose={() => setDialog(null)} onAction={act} onReset={() => { if (role !== 'owner') throw new Error('Reset demo hanya tersedia untuk owner.'); store.reset(); setToast({ text: 'Data contoh dipulihkan.', error: false }); }}/>} {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role={toast.error ? 'alert' : 'status'}>
         <Icon name={toast.error ? 'alert' : 'check'}/>
         <span>{toast.text}</span>
         <button aria-label="Tutup pesan" className="icon-button" onClick={() => setToast(null)}>

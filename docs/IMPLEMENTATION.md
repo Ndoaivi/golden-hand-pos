@@ -26,7 +26,7 @@ Current state schema version 2 contains five Standard tables and only `rates.Sta
 
 Existing version 1 Golden Hand data is validated before migration. The store saves the exact old JSON to `golden-hand-pos-phase1-v1-before-standard` before persisting the upgrade under the existing key. Migration changes current table classifications and rate configuration, increments the revision, and adds an audit entry. It preserves active-session rates, charge labels/amounts, product/HPP snapshots, payments, unpaid balances, pending quotes, completed records, shifts and staff. Legacy charge text can still mention the former class because historical bills are not rewritten. Migration is idempotent. Invalid data or a failed storage write opens the existing recovery screen instead of resetting financial data. The previous prototype HTML files remain untouched.
 
-The service worker cache version is bumped to v2 so an updated shell can replace the dark version. Close old demo tabs before upgrading; localStorage still has the concurrency limitations described above.
+The service worker cache version is bumped to v3 so an updated shell can replace the dark version. Close old demo tabs before upgrading; localStorage still has the concurrency limitations described above.
 
 ## Reports and shift definitions
 
@@ -53,7 +53,11 @@ The production build registers a service worker on localhost/HTTPS. Installation
 
 ## Security boundary
 
-Demo roles hide incompatible screens and shared action checks prevent accidental cashier configuration changes. Anyone controlling the browser can edit storage/code or select the owner demo. Staff editing manages local profile records only. There are no passwords, auth sessions, access tokens, or server RBAC policies.
+Cashier and owner enter through separate `/pos` and `/admin` pages; the root defaults to the cashier entry. Each page has one portal-specific demo confirmation and no role switch. Portal-specific sessionStorage keys replace the previous shared role key, which is ignored. Changing a URL or using Back/Forward only restores that portal's existing demo confirmation; it never grants the new role based on the URL. Logout clears the current portal and keeps its entry URL. Cashier screens have no global reset; owner retains the demo reset/recovery workflow.
+
+Owner adjusts the one shared rental rate and product selling price/HPP in existing editor dialogs. Cross-tab data still shares one local store so the cashier menu reflects owner pricing without gaining editors. Active-session rental rates and previous order snapshots remain unchanged.
+
+Demo roles hide incompatible screens and shared action checks prevent accidental cashier configuration changes. Anyone controlling the browser can edit storage/code or manually visit the owner demo URL. Staff editing manages local profile records only. There are no passwords, authenticated sessions, access tokens, or server RBAC policies. Separate routes and demo confirmations must not be described as protected access. Production must verify the signed-in staff role on every API operation, deny cashier access to owner settings, and authenticate realtime subscriptions. Install the tablet PWA from the cashier entry when the production PWA entry policy is finalized; the current manifest still starts at the root/cashier entry.
 
 Approval decisions update a local request status and audit entry only. They do not issue refunds, reverse a charge, restore stock, or reconcile an EDC/gateway. Production audit must be append-only in a protected backend, with full transactional reversals.
 
