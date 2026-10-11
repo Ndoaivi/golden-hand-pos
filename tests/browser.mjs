@@ -1,0 +1,96 @@
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { readFile, mkdir } from 'node:fs/promises';
+import { resolve, extname } from 'node:path';
+import { chromium } from 'playwright';
+
+// Self-contained local browser suite: requires a completed build, never deploys.
+const root=resolve('apps/web/dist');
+const screenshots=resolve('docs/previews');
+await mkdir(screenshots,{recursive:true});
+const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.webmanifest':'application/manifest+json'};
+const server=createServer(async (req,res) => {
+  const path=new URL(req.url,'http://localhost').pathname;
+  const target=resolve(root,`.${path}`);
+  if (!target.startsWith(`${root}/`) && target!==root) { res.writeHead(403).end(); return; }
+  try { const file=path==='/' ? resolve(root,'index.html') : target; const data=await readFile(file); res.writeHead(200,{'Content-Type':mime[extname(file)]??'application/octet-stream'}).end(data); }
+  catch { if(path.startsWith('/assets/')||path.includes('.')) res.writeHead(404).end(); else res.writeHead(200,{'Content-Type':'text/html'}).end(await readFile(resolve(root,'index.html'))); }
+});
+await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
+const url=`http://127.0.0.1:${server.address().port}`;
+const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+const context=await browser.newContext({viewport:{width:1280,height:800},hasTouch:true});
+const page=await context.newPage();
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+const storageKey='golden-hand-pos-phase1-v1';
+const state=()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),storageKey);
+const dialog=()=>page.getByRole('dialog');
+let count=0;
+const pass=label=>{count++;console.log(`PASS ${count}: ${label}`);};
+async function noOverflow() { assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'page overflows horizontally'); }
+async function cleanPreview() { const close=page.locator('.toast .icon-button'); if(await close.count()) await close.click(); await page.evaluate(()=>window.scrollTo(0,0)); }
+async function closeDialog() { await dialog().getByRole('button',{name:'Tutup dialog',exact:true}).click(); }
+try {
+  await page.goto(url);await page.getByRole('button',{name:'Cashier POS'}).waitFor();
+  assert.ok(await page.locator('.login-panel img').evaluate(el=>el.complete&&el.naturalWidth===1280));
+  await page.screenshot({path:resolve(screenshots,'login.png'),fullPage:true});pass('login displays supplied, undistorted original logo');
+  await page.getByRole('button',{name:'Cashier POS'}).click();
+  assert.equal(await page.locator('.table-card').count(),5);assert.equal(await page.getByRole('button',{name:'Edit harga',exact:true}).count(),0);
+  await noOverflow();await page.screenshot({path:resolve(screenshots,'cashier-tablet.png'),fullPage:true});pass('cashier five-table dashboard, read-only pricing and 1280px tablet layout');
+  await page.setViewportSize({width:1024,height:768});await noOverflow();await page.screenshot({path:resolve(screenshots,'cashier-tablet-1024.png'),fullPage:true});
+  await page.setViewportSize({width:1280,height:800});
+  await page.getByRole('button',{name:'Meja 05 Waktu habis',exact:true}).click();
+  assert.equal(await page.locator('.session-panel').getByRole('button',{name:'Tambah F&B'}).isDisabled(),true);
+  assert.equal(await page.locator('.session-panel .countdown-panel>strong').textContent(),'00:00:00');
+  await page.locator('.session-panel').getByRole('button',{name:'Extend',exact:true}).click();
+  await dialog().getByLabel('Tambahan durasi').selectOption('30');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();
+  assert.ok((await state()).tables[4].session.expires>Date.now());pass('expired cutoff blocks F&B and extends from reactivation time');
+  await page.getByRole('button',{name:'Meja 03 Tersedia',exact:true}).click();
+  await page.getByRole('button',{name:'Mulai sesi baru'}).click();await dialog().getByLabel('Skema pembayaran').selectOption('postpaid');
+  // Modal focus is trapped, and Escape dismisses without starting a session.
+  await page.keyboard.press('Escape');assert.equal((await state()).tables[2].session,null);
+  await page.getByRole('button',{name:'Mulai sesi baru'}).click();await dialog().getByLabel('Skema pembayaran').selectOption('postpaid');
+  await dialog().getByRole('button',{name:'Mulai sesi',exact:true}).click();assert.equal((await state()).tables[2].session.payments.length,0);pass('postpaid session starts without paid balance; Escape cancels dialog safely');
+  await page.locator('.session-panel').getByRole('button',{name:'Tambah F&B'}).click();
+  await page.getByRole('button',{name:/Air Mineral 600ml/}).click();await dialog().getByLabel(/Jumlah · tersedia/).fill('2');
+  await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();assert.equal((await state()).products[0].stock,34);pass('F&B order stores snapshot and deducts exactly two inventory units');
+  await page.getByRole('button',{name:'Meja & sesi',exact:true}).click();await page.locator('.session-panel').getByRole('button',{name:'Terima pembayaran',exact:true}).click();
+  await dialog().getByLabel('Nominal pembayaran (Rp)',{exact:true}).fill('40000');await dialog().getByLabel('Uang diterima (Rp)',{exact:true}).fill('50000');
+  await dialog().getByRole('button',{name:'Catat pembayaran'}).click();assert.equal((await state()).tables[2].session.payments[0].amount,40000);
+  await page.locator('.session-panel').getByRole('button',{name:'Terima pembayaran',exact:true}).click();await dialog().getByRole('button',{name:'QRIS demo',exact:true}).click();
+  await dialog().getByRole('button',{name:'Buat pending demo'}).click();assert.equal((await state()).tables[2].session.payments.length,1);
+  await page.locator('.pending-trigger').click();await dialog().getByRole('button',{name:'Simulasi settlement',exact:true}).click();await closeDialog();
+  assert.equal((await state()).tables[2].session.payments.length,2);pass('partial cash and simulated QRIS settle once; pending did not count as paid');
+  await page.locator('.session-panel').getByRole('button',{name:'Preview / cetak bill'}).click();
+  assert.match(await page.locator('.receipt').innerText(),/RECEIPT · LUNAS/);assert.ok(await page.locator('.receipt img').evaluate(el=>el.complete));
+  await page.emulateMedia({media:'print'});await page.screenshot({path:resolve(screenshots,'receipt-80mm.png'),fullPage:true});await page.emulateMedia({media:'screen'});await closeDialog();pass('paid receipt uses original logo and 80mm print stylesheet');
+  await page.locator('.session-panel').getByRole('button',{name:'Selesaikan & checkout'}).click();assert.equal((await state()).tables[2].state,'cleaning');
+  await page.getByRole('button',{name:'Tandai meja siap'}).click();assert.equal((await state()).tables[2].state,'available');pass('checkout archives charges/payments and requires cleaning before ready');
+  await page.locator('.sidebar-tool').filter({hasText:'Buka demo owner'}).click();assert.equal(await page.locator('.owner-tables .table-card').count(),5);
+  await cleanPreview();await page.screenshot({path:resolve(screenshots,'owner-desktop.png'),fullPage:true});await noOverflow();pass('owner overview monitors the same five tables');
+  const ownerTab=await context.newPage();await ownerTab.goto(`${url}/admin`);await ownerTab.getByRole('button',{name:'Owner Dashboard'}).click();
+  await ownerTab.getByRole('button',{name:'Tarif meja',exact:true}).click();await ownerTab.getByRole('button',{name:'Ubah tarif',exact:false}).first().click();
+  await ownerTab.getByRole('dialog').getByLabel('Tarif per jam (Rp)').fill('100000');await ownerTab.getByRole('dialog').getByRole('button',{name:'Simpan & lanjutkan'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).rates.Standard===100000,storageKey);
+  await page.getByRole('button',{name:'Tarif meja',exact:true}).click();await page.getByText('Rp 100.000',{exact:false}).first().waitFor();
+  assert.equal((await state()).tables[0].session.rate,80000);await ownerTab.close();pass('cross-tab owner rate update syncs, retaining active-session rate snapshot');
+  await page.getByRole('button',{name:'Katalog & stok',exact:true}).click();await page.getByRole('button',{name:'Edit harga',exact:true}).first().click();
+  await dialog().getByLabel('Harga jual (Rp)').fill('9000');await dialog().getByLabel('HPP / unit (Rp)').fill('4000');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();assert.equal((await state()).products[0].price,9000);
+  await page.getByRole('button',{name:'Stok ±',exact:true}).first().click();await dialog().getByLabel('Jumlah unit').fill('10');await dialog().getByLabel('Alasan perubahan').fill('Restock supplier');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();
+  assert.equal((await state()).products[0].stock,44);pass('owner price/HPP and inventory restock are editable and audited');
+  await page.getByRole('button',{name:/Refund & void/}).click();await page.getByRole('button',{name:'Setujui demo'}).click();assert.equal((await state()).approvals[0].status,'approved');pass('refund/void approval clearly remains a status-only demo');
+  await page.getByRole('button',{name:'Staf & shift',exact:true}).click();await page.getByRole('button',{name:'Tambah staf',exact:true}).click();
+  await dialog().getByLabel('Nama staf').fill('Kasir Baru');await dialog().getByRole('button',{name:'Simpan & lanjutkan'}).click();assert.equal((await state()).staff.length,4);pass('staff profile management is local and labelled as demo');
+  await page.getByRole('button',{name:'Laporan penjualan',exact:true}).click();await page.getByLabel('Tanggal laporan').fill('2020-01-01');await page.getByRole('heading',{name:'Belum ada transaksi selesai pada tanggal ini'}).waitFor();pass('empty report state for date without transactions');
+  await page.getByLabel('Tanggal laporan').fill(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'}));
+  const downloadEvent=page.waitForEvent('download');await page.getByRole('button',{name:'Ekspor CSV'}).click();assert.match((await downloadEvent).suggestedFilename(),/golden-hand-sales/);pass('report CSV export');
+  await page.getByRole('button',{name:'Overview',exact:true}).click();await page.setViewportSize({width:390,height:844});await noOverflow();await cleanPreview();await page.screenshot({path:resolve(screenshots,'owner-mobile.png'),fullPage:true});
+  await page.getByRole('button',{name:'Buka navigasi'}).click();await page.getByRole('button',{name:'Katalog & stok',exact:true}).click();await noOverflow();await page.screenshot({path:resolve(screenshots,'owner-mobile-catalog.png'),fullPage:true});
+  await page.getByRole('button',{name:'Buka navigasi'}).click();await page.getByRole('button',{name:'Overview',exact:true}).click();await page.setViewportSize({width:768,height:1024});await noOverflow();
+  await page.setViewportSize({width:1280,height:800});pass('owner mobile 390px and portrait tablet 768px have no page overflow');
+  await page.reload();await page.getByRole('heading',{name:'Selamat datang, Owner.'}).waitFor();assert.equal((await state()).products[0].stock,44);pass('reload retains local data and demo role');
+  await page.evaluate(async()=>{await navigator.serviceWorker.ready;});await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+  await context.setOffline(true);await page.reload();await page.getByText(/Offline · demo memakai data browser/).waitFor();await page.getByRole('heading',{name:'Selamat datang, Owner.'}).waitFor();await context.setOffline(false);pass('production shell reloads offline from service worker with explicit offline state');
+  await page.evaluate(key=>localStorage.setItem(key,'{"invalid":true}'),storageKey);await page.reload();await page.getByRole('heading',{name:'Data demo tidak dapat dimuat'}).waitFor();pass('corrupt localStorage displays recoverable error without silently deleting data');
+  assert.deepEqual(errors,[]);console.log(`\n${count} browser checks passed; ${errors.length} uncaught page errors. Screenshots: docs/previews/`);
+} finally { await context.close();await browser.close();await new Promise(resolve=>server.close(resolve)); }
