@@ -28,16 +28,20 @@ const dialog=()=>page.getByRole('dialog');
 let count=0;
 const pass=label=>{count++;console.log(`PASS ${count}: ${label}`);};
 async function noOverflow() { assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'page overflows horizontally'); }
+async function cashierActionsVisible() {
+  const box=await page.locator('.session-panel .checkout-button').boundingBox();
+  assert.ok(box && box.y>=0 && box.y+box.height<=page.viewportSize().height+1,'cashier checkout/payment must fit the landscape viewport');
+}
 async function cleanPreview() { const close=page.locator('.toast .icon-button'); if(await close.count()) await close.click(); await page.evaluate(()=>window.scrollTo(0,0)); }
 async function closeDialog() { await dialog().getByRole('button',{name:'Tutup dialog',exact:true}).click(); }
 try {
   await page.goto(url);await page.getByRole('button',{name:'Cashier POS'}).waitFor();
-  assert.ok(await page.locator('.login-panel img').evaluate(el=>el.complete&&el.naturalWidth===1280));
+  assert.ok(await page.locator('.login-story img').evaluate(el=>el.complete&&el.naturalWidth===1280));
   await page.screenshot({path:resolve(screenshots,'login.png'),fullPage:true});pass('login displays supplied, undistorted original logo');
   await page.getByRole('button',{name:'Cashier POS'}).click();
-  assert.equal(await page.locator('.table-card').count(),5);assert.equal(await page.getByRole('button',{name:'Edit harga',exact:true}).count(),0);
-  await noOverflow();await page.screenshot({path:resolve(screenshots,'cashier-tablet.png'),fullPage:true});pass('cashier five-table dashboard, read-only pricing and 1280px tablet layout');
-  await page.setViewportSize({width:1024,height:768});await noOverflow();await page.screenshot({path:resolve(screenshots,'cashier-tablet-1024.png'),fullPage:true});
+  assert.equal(await page.locator('.table-card').count(),5);assert.ok((await state()).tables.every(t=>t.kind==='Standard'));assert.deepEqual((await state()).rates,{Standard:80000});assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).colorScheme),'light');assert.equal(await page.getByRole('button',{name:'Edit harga',exact:true}).count(),0);
+  await noOverflow();await cashierActionsVisible();await page.screenshot({path:resolve(screenshots,'cashier-tablet.png'),fullPage:true});pass('cashier five-table Standard dashboard, light theme, read-only pricing and visible tablet actions');
+  await page.setViewportSize({width:1024,height:768});await noOverflow();await cashierActionsVisible();await page.screenshot({path:resolve(screenshots,'cashier-tablet-1024.png'),fullPage:true});
   await page.setViewportSize({width:1280,height:800});
   await page.getByRole('button',{name:'Meja 05 Waktu habis',exact:true}).click();
   assert.equal(await page.locator('.session-panel').getByRole('button',{name:'Tambah F&B'}).isDisabled(),true);
@@ -69,7 +73,7 @@ try {
   await page.locator('.sidebar-tool').filter({hasText:'Buka demo owner'}).click();assert.equal(await page.locator('.owner-tables .table-card').count(),5);
   await cleanPreview();await page.screenshot({path:resolve(screenshots,'owner-desktop.png'),fullPage:true});await noOverflow();pass('owner overview monitors the same five tables');
   const ownerTab=await context.newPage();await ownerTab.goto(`${url}/admin`);await ownerTab.getByRole('button',{name:'Owner Dashboard'}).click();
-  await ownerTab.getByRole('button',{name:'Tarif meja',exact:true}).click();await ownerTab.getByRole('button',{name:'Ubah tarif',exact:false}).first().click();
+  await ownerTab.getByRole('button',{name:'Tarif meja',exact:true}).click();assert.equal(await ownerTab.locator('.rate-card').count(),1);await ownerTab.getByRole('button',{name:'Ubah tarif',exact:false}).first().click();
   await ownerTab.getByRole('dialog').getByLabel('Tarif per jam (Rp)').fill('100000');await ownerTab.getByRole('dialog').getByRole('button',{name:'Simpan & lanjutkan'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).rates.Standard===100000,storageKey);
   await page.getByRole('button',{name:'Tarif meja',exact:true}).click();await page.getByText('Rp 100.000',{exact:false}).first().waitFor();
@@ -88,9 +92,31 @@ try {
   await page.getByRole('button',{name:'Buka navigasi'}).click();await page.getByRole('button',{name:'Katalog & stok',exact:true}).click();await noOverflow();await page.screenshot({path:resolve(screenshots,'owner-mobile-catalog.png'),fullPage:true});
   await page.getByRole('button',{name:'Buka navigasi'}).click();await page.getByRole('button',{name:'Overview',exact:true}).click();await page.setViewportSize({width:768,height:1024});await noOverflow();
   await page.setViewportSize({width:1280,height:800});pass('owner mobile 390px and portrait tablet 768px have no page overflow');
-  await page.reload();await page.getByRole('heading',{name:'Selamat datang, Owner.'}).waitFor();assert.equal((await state()).products[0].stock,44);pass('reload retains local data and demo role');
+  await page.reload();await page.getByRole('heading',{name:'Ringkasan operasional'}).waitFor();assert.equal((await state()).products[0].stock,44);pass('reload retains local data and demo role');
   await page.evaluate(async()=>{await navigator.serviceWorker.ready;});await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-  await context.setOffline(true);await page.reload();await page.getByText(/Offline · demo memakai data browser/).waitFor();await page.getByRole('heading',{name:'Selamat datang, Owner.'}).waitFor();await context.setOffline(false);pass('production shell reloads offline from service worker with explicit offline state');
+  await context.setOffline(true);await page.reload();await page.getByText(/Offline · demo memakai data browser/).waitFor();await page.getByRole('heading',{name:'Ringkasan operasional'}).waitFor();await context.setOffline(false);pass('production shell reloads offline from service worker with explicit offline state');
+  const migrationContext=await browser.newContext();
+  try {
+    const migrationPage=await migrationContext.newPage();
+    migrationPage.on('pageerror',e=>errors.push(e.message));
+    await migrationPage.goto(url);await migrationPage.getByRole('button',{name:'Owner Dashboard'}).waitFor();
+    const legacy=await state();legacy.version=1;legacy.rates.VIP=120000;
+    legacy.tables[1].kind='VIP';legacy.tables[1].session.rate=120000;
+    legacy.tables[1].session.charges[0].amount=360000;
+    legacy.tables[1].session.charges[0].label='Sewa 3 jam · VIP';
+    const raw=JSON.stringify(legacy);
+    await migrationPage.evaluate(({key,raw})=>localStorage.setItem(key,raw),{key:storageKey,raw});
+    await migrationPage.reload();await migrationPage.getByRole('button',{name:'Owner Dashboard'}).click();
+    await migrationPage.getByRole('heading',{name:'Ringkasan operasional'}).waitFor();
+    const migrated=await migrationPage.evaluate(key=>({data:JSON.parse(localStorage.getItem(key)),backup:localStorage.getItem(`${key}-before-standard`)}),storageKey);
+    assert.equal(migrated.backup,raw);assert.equal(migrated.data.version,2);
+    assert.ok(migrated.data.tables.every(t=>t.kind==='Standard'));
+    assert.deepEqual(migrated.data.tables.map(t=>t.session),legacy.tables.map(t=>t.session));
+    assert.deepEqual(migrated.data.records,legacy.records);
+    await migrationPage.reload();await migrationPage.getByRole('heading',{name:'Ringkasan operasional'}).waitFor();
+    assert.equal(await migrationPage.evaluate(key=>JSON.parse(localStorage.getItem(key)).revision,storageKey),migrated.data.revision);
+    pass('legacy browser data migrates once with exact backup and unchanged financial snapshots');
+  } finally { await migrationContext.close(); }
   await page.evaluate(key=>localStorage.setItem(key,'{"invalid":true}'),storageKey);await page.reload();await page.getByRole('heading',{name:'Data demo tidak dapat dimuat'}).waitFor();pass('corrupt localStorage displays recoverable error without silently deleting data');
   assert.deepEqual(errors,[]);console.log(`\n${count} browser checks passed; ${errors.length} uncaught page errors. Screenshots: docs/previews/`);
 } finally { await context.close();await browser.close();await new Promise(resolve=>server.close(resolve)); }

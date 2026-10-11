@@ -127,20 +127,13 @@ export function TableCard({ table, now, selected, compact, onClick, state }: {
     const pending = state.intents.some(i => i.tableId === table.id && i.status === 'pending');
     return <button className={`table-card ${st} ${selected ? 'selected' : ''} ${compact ? 'compact' : ''}`} onClick={onClick} aria-pressed={selected} aria-label={`Meja ${String(table.id).padStart(2, '0')} ${labels[st]}`}>
     <div className="table-card-top">
-    <span className="table-no">{String(table.id).padStart(2, '0')}</span>
+    <span className="table-no">Meja {String(table.id).padStart(2, '0')}</span>
     <Badge kind={st}>{pending ? 'Bayar pending' : labels[st]}</Badge>
-    </div>
-    <div className="table-illustration" aria-hidden="true">
-    <i />
-    <i />
-    <i />
-    <i />
-    <span>發</span>
     </div>
     <div className="table-card-bottom">
     <div>
-    <h3>Meja {String(table.id).padStart(2, '0')}</h3>
-    <span className="muted">{table.kind === 'VIP' && <Icon name="crown" size={12}/>} {table.kind}</span>
+    <h3>{table.kind}</h3>
+    <span className="muted">{money(table.session?.rate ?? state.rates.Standard)} / jam</span>
     </div>
     <div className="table-time">{table.session ? countdown(table.session.expires, now) : <Icon name={st === 'cleaning' ? 'check' : 'plus'} size={24}/>}<small>{table.session ? st === 'expired' ? 'Software cutoff' : 'Sisa waktu' : st === 'cleaning' ? 'Persiapan meja' : 'Mulai sesi'}</small>
     </div>

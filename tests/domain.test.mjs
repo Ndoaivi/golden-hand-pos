@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { seed, transition, status, countdown, due, paid, total, validateState, drawer, openShift, report, localDay } from '../packages/domain/index.ts';
+import { seed, transition, status, countdown, due, paid, total, validateState, migrateState, drawer, openShift, report, localDay } from '../packages/domain/index.ts';
 
 const now = Date.UTC(2026, 9, 11, 8, 0);
 const change = (s,a,role='cashier',at=now) => transition(s,a,role,at);
@@ -112,7 +112,7 @@ test('report uses settled records and historical costs; payment cash is not doub
 });
 test('malformed stored data and six-table state rejected, original valid state accepted', () => {
   const s=seed(now); assert.ok(validateState(JSON.parse(JSON.stringify(s))));
-  for(const bad of [null,{}, {...s,version:2},{...s,tables:[...s.tables,s.tables[0]]},{...s,products:[{...s.products[0],stock:-1}]},{...s,records:[{}]},{...s,intents:[{}]},{...s,audit:[{}]}]) assert.equal(validateState(bad),false);
+  for(const bad of [null,{}, {...s,version:3},{...s,tables:[...s.tables,s.tables[0]]},{...s,products:[{...s.products[0],stock:-1}]},{...s,records:[{}]},{...s,intents:[{}]},{...s,audit:[{}]}]) assert.equal(validateState(bad),false);
 });
 test('timer reconstructs from persisted timestamp after long tablet sleep', () => {
   const s=seed(now); const restored=JSON.parse(JSON.stringify(s)); assert.equal(status(restored.tables[0],now+3*3600000),'expired'); assert.equal(countdown(restored.tables[0].session.expires,now+3*3600000),'00:00:00');
@@ -125,4 +125,40 @@ test('oversized rental and order totals rejected before mutation rather than cre
   assert.throws(() => start(s),/batas nominal/); assert.equal(s.tables[2].session,null);
   s=change(s,{type:'price',productId:'p1',price:100000000,cost:100000000},'owner');
   assert.throws(() => change(s,{type:'order',tableId:1,productId:'p1',quantity:2}),/batas nominal/); assert.equal(s.products[0].stock,36);
+});
+
+test('all five tables share a single Standard rate; alternative classes are rejected', () => {
+  const s=seed(now);
+  assert.ok(s.tables.every(t=>t.kind==='Standard'));
+  assert.deepEqual(s.rates,{Standard:80000});
+  assert.equal(validateState({...s,tables:s.tables.map((t,i)=>i===1?{...t,kind:'VIP'}:t)}),false);
+  assert.equal(validateState({...s,rates:{...s.rates,VIP:120000}}),false);
+  assert.throws(()=>change(s,{type:'rate',kind:'VIP',price:120000},'owner'),/Standard/);
+});
+
+test('legacy migration preserves bills, payments, outstanding, pending quotes and historical snapshots', () => {
+  const legacy=seed(now);
+  legacy.version=1;legacy.rates.VIP=120000;
+  legacy.tables[1].kind='VIP';legacy.tables[1].session.rate=120000;
+  legacy.tables[1].session.charges[0].amount=360000;
+  legacy.tables[1].session.charges[0].label='Sewa 3 jam · VIP';
+  legacy.intents.push({id:'legacy-quote',tableId:3,kind:'start',method:'qris',amount:240000,status:'pending',at:now,minutes:120,policy:'prepaid'});
+  const before=structuredClone(legacy);
+  const result=migrateState(legacy,now);
+  assert.equal(result.version,2);assert.equal(result.revision,before.revision+1);
+  assert.equal(validateState(result),true);assert.ok(result.tables.every(t=>t.kind==='Standard'));
+  assert.deepEqual(result.rates,{Standard:80000});
+  for(const field of ['records','intents','products','shifts','staff','approvals'])assert.deepEqual(result[field],before[field]);
+  assert.deepEqual(result.tables.map(t=>t.session),before.tables.map(t=>t.session));
+  assert.equal(due(result.tables[1].session),360000);
+  assert.deepEqual(legacy,before,'migration must not mutate the old dataset');
+  assert.strictEqual(migrateState(result,now),result,'migration is idempotent');
+  const settled=change(result,{type:'settle',intentId:'legacy-quote'});
+  assert.equal(settled.tables[2].session.rate,120000,'a pending quote retains its agreed rate');
+  assert.equal(total(settled.tables[2].session),240000);
+});
+
+test('malformed legacy data fails migration rather than overwriting saved transactions', () => {
+  const legacy={...seed(now),version:1,rates:{Standard:80000,VIP:120000}};
+  for(const bad of [{...legacy,rates:{Standard:80000,VIP:-1}},{...legacy,records:[{}]}, {...legacy,tables:[]}, {...legacy,version:0}])assert.throws(()=>migrateState(bad,now),/non valide|pas valide|tidak valid/);
 });

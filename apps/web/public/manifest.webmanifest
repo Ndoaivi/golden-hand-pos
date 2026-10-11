@@ -1,6 +1,6 @@
 {
   "id": "/", "name": "GOLDEN HAND MAHJONG POS", "short_name": "Golden Hand",
   "start_url": "/", "scope": "/", "display": "standalone",
-  "background_color": "#181410", "theme_color": "#181410",
+  "background_color": "#f6f5f1", "theme_color": "#f6f5f1",
   "icons": [{ "src": "/brand/golden-hand-original.jpg", "sizes": "1280x995", "type": "image/jpeg", "purpose": "any" }]
 }

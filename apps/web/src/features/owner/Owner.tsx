@@ -42,7 +42,7 @@ export function Owner({ state, now, view, onDialog, onAction, onView }: {
     const chart = <RevenueChart state={state} now={now} selectedDay={day} onDay={setDay}/>;
     if (view === 'overview')
         return <>
-        <PageTitle eyebrow="OWNER DASHBOARD" title="Selamat datang, Owner." subtitle="Setiap meja, setiap transaksi. Semua dalam pandangan." action={dayPicker}/>{cards}<div className="owner-overview-grid">
+        <PageTitle eyebrow="OWNER DASHBOARD" title="Ringkasan operasional" subtitle="Penjualan, saldo sesi, dan stok untuk tanggal terpilih." action={dayPicker}/>{cards}<div className="owner-overview-grid">
         <div className="panel revenue-panel">
         <div className="panel-head">
         <div>
@@ -104,12 +104,6 @@ export function Owner({ state, now, view, onDialog, onAction, onView }: {
             <small>{a.actor} · {time(a.at)} WIB</small>
             </div>
             </div>)}</div>
-        <div className="owner-signature">
-        <Icon name="crown" size={32}/>
-        <span className="eyebrow">GOLDEN HAND MAHJONG</span>
-        <h3>A refined place.<br />A well-run business.</h3>
-        <p>Kontrol bisnis ada di tangan Anda.</p>
-        </div>
         </div>
         </>;
     if (view === 'tables')
@@ -188,9 +182,9 @@ export function Owner({ state, now, view, onDialog, onAction, onView }: {
     if (view === 'pricing')
         return <>
         <PageTitle eyebrow="RENTAL PRICING" title="Tarif meja" subtitle="Perubahan berlaku pada sesi baru; histori tetap konsisten."/>
-        <div className="rates-grid">{(['Standard', 'VIP'] as const).map(kind => <div className={`panel rate-card ${kind === 'VIP' ? 'vip-rate' : ''}`} key={kind}>
-            <Icon name={kind === 'VIP' ? 'crown' : 'tables'} size={30}/>
-            <span className="eyebrow">{kind.toUpperCase()} EXPERIENCE</span>
+        <div className="rates-grid">{(['Standard'] as const).map(kind => <div className="panel rate-card" key={kind}>
+            <Icon name="tables" size={30}/>
+            <span className="eyebrow">BERLAKU UNTUK SEMUA MEJA</span>
             <h2>{kind}</h2>
             <p>{state.tables.filter(t => t.kind === kind).map(t => `Meja ${String(t.id).padStart(2, '0')}`).join(' · ')}</p>
             <div className="rate-value">{money(state.rates[kind])}<span>/ jam</span>

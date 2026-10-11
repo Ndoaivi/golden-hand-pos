@@ -103,25 +103,19 @@ export default function App() {
         return <div className="system-screen" role="status">
         <Brand large/>
         <div className="loading-ring"/>
-        <h2>Menyiapkan lounge Anda…</h2>
+        <h2>Memuat POS…</h2>
         <p>Memuat lima meja dan data demo.</p>
         </div>;
     if (!role)
         return <div className="login-screen">
         <div className="login-story">
-        <span className="eyebrow">THE GOLDEN HAND EXPERIENCE</span>
-        <h1>Good company.<br />Great games.<br />
-        <em>Golden moments.</em>
-        </h1>
-        <div className="login-line"/>
-        <p>A refined Mahjong lounge,<br />thoughtfully managed.</p>
-        <span className="login-bottom">GOLDEN HAND MAHJONG · POINT OF SALE</span>
+        <Brand large/>
+        <span className="login-bottom">POINT OF SALE</span>
         </div>
         <div className="login-panel">
-        <Brand large/>
         <div className="login-panel-copy">
-        <span className="eyebrow">WELCOME TO THE LOUNGE</span>
-        <h2>Selamat datang.</h2>
+        <span className="eyebrow">GOLDEN HAND MAHJONG</span>
+        <h2>Buka workspace</h2>
         <p>Pilih antarmuka untuk menjelajahi demo.</p>
         </div>
         <button className="login-role" onClick={() => enter('cashier')}>
@@ -136,7 +130,7 @@ export default function App() {
         </button>
         <button className="login-role" onClick={() => enter('owner')}>
         <span className="role-icon">
-        <Icon name="crown" size={25}/>
+        <Icon name="overview" size={25}/>
         </span>
         <span>
         <strong>Owner Dashboard</strong>
@@ -159,10 +153,10 @@ export default function App() {
     <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
     <div className="sidebar-brand">
     <Brand />
-    <span className="sidebar-mode">{role === 'owner' ? 'OWNER DASHBOARD' : 'FRONT OFFICE POS'}</span>
+    <span className="sidebar-mode">{role === 'owner' ? 'OWNER DASHBOARD' : 'CASHIER POS'}</span>
     </div>
     <div className="sidebar-separator"/>
-    <span className="nav-group">{role === 'owner' ? 'BUSINESS CONTROL' : 'LOUNGE OPERATIONS'}</span>
+    <span className="nav-group">{role === 'owner' ? 'OWNER' : 'KASIR'}</span>
     <nav aria-label={role === 'owner' ? 'Navigasi owner' : 'Navigasi kasir'}>{nav.map(n => <button key={n.id} className={`nav-item ${view === n.id ? 'selected' : ''}`} onClick={() => navigate(n.id)} aria-current={view === n.id ? 'page' : undefined}>
         <Icon name={n.icon}/>
         <span>{n.label}</span>{n.id === 'approvals' && state.approvals.some(a => a.status === 'pending') && <span className="nav-count">{state.approvals.filter(a => a.status === 'pending').length}</span>}</button>)}</nav>
@@ -190,12 +184,12 @@ export default function App() {
     </div>
     </aside>
     <div className="main-shell">
+    <div className="mobile-brand-header"><Brand /></div>
     <header className="topbar">
     <div className="topbar-breadcrumb">
     <button className="icon-button mobile-menu" aria-label="Buka navigasi" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>
     <Icon name="menu"/>
     </button>
-    <img className="mobile-brand-mark" src="/brand/golden-hand-original.jpg" alt="GOLDEN HAND MAHJONG" width="1280" height="995"/>
     <span>{role === 'owner' ? 'Owner Dashboard' : 'Cashier POS'}</span>
     <span className="breadcrumb-divider">/</span>
     <strong>{navTitle}</strong>

@@ -106,7 +106,7 @@ export function Cashier({ state, now, view, selected, onSelect, onDialog, onActi
             </button>)}</div>
         </>;
     return <>
-    <PageTitle eyebrow="FRONT OFFICE" title="Meja & sesi" subtitle="Lima meja. Satu tempat untuk mengelola setiap sesi." action={<div className="live-label">
+    <PageTitle eyebrow="KASIR" title="Meja & sesi" subtitle="5 meja Standard · pilih meja untuk mulai atau melanjutkan sesi." action={<div className="live-label">
         <span />Pembaruan lokal</div>}/>
     {!shift && <div className="notice amber">
         <Icon name="alert"/>Shift ditutup. Buka shift untuk mencatat sesi, order, dan pembayaran.<button className="button primary small" onClick={() => onDialog({ kind: 'shift' })}>Buka shift</button>
@@ -122,18 +122,13 @@ export function Cashier({ state, now, view, selected, onSelect, onDialog, onActi
     <div className="floor-area">
     <div className="section-heading">
     <div>
-    <h2>Floor lounge</h2>
+    <h2>Status meja</h2>
     <span className="muted small">Pilih meja untuk mengelola sesi</span>
     </div>
     <span className="eyebrow">01 — 05</span>
     </div>
     <div className="chips floor-filters">{(['all', 'active', 'available', 'expired', 'cleaning'] as const).map(f => <button className={`chip ${filter === f ? 'selected' : ''}`} key={f} onClick={() => setFilter(f)} aria-pressed={filter === f}>{f === 'all' ? 'Semua meja' : labels[f]}</button>)}</div>
-    <div className="tables-grid">{state.tables.filter(t => filter === 'all' || status(t, now) === filter).map(t => <TableCard key={t.id} table={t} now={now} selected={t.id === selected} state={state} onClick={() => onSelect(t.id)}/>)}{filter === 'all' && <div className="lounge-note">
-        <Icon name="crown" size={27}/>
-        <span className="eyebrow">A GOLDEN EXPERIENCE</span>
-        <h3>Permainan yang baik<br />dimulai dari pelayanan.</h3>
-        <p>Harga dikelola owner.<br />Kasir fokus pada tamu.</p>
-        </div>}</div>{state.tables.filter(t => filter === 'all' || status(t, now) === filter).length === 0 && <Empty icon="tables" title="Tidak ada meja pada filter ini">
+    <div className="tables-grid">{state.tables.filter(t => filter === 'all' || status(t, now) === filter).map(t => <TableCard key={t.id} table={t} now={now} selected={t.id === selected} state={state} onClick={() => onSelect(t.id)}/>)}</div>{state.tables.filter(t => filter === 'all' || status(t, now) === filter).length === 0 && <Empty icon="tables" title="Tidak ada meja pada filter ini">
         <button className="button" onClick={() => setFilter('all')}>Lihat semua meja</button>
         </Empty>}
       <div className="floor-foot">

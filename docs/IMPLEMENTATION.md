@@ -20,6 +20,14 @@ Session rental rates and ordered product price/HPP are snapshots. Rental edits a
 
 Cash payments record the amount applied to the bill, not the full cash tender. Change is shown to the cashier. Pending noncash intents never count as paid and never activate prepaid durations. The simulation can settle once or cancel. Checkout requires zero due and no pending intent, archives payments/charges, and moves the table to cleaning. A separate ready action frees the table.
 
+## Standard-table upgrade
+
+Current state schema version 2 contains five Standard tables and only `rates.Standard`. All new demo sessions share the sample Rp80,000/hour rate. Owner edits one rental setting for all five tables.
+
+Existing version 1 Golden Hand data is validated before migration. The store saves the exact old JSON to `golden-hand-pos-phase1-v1-before-standard` before persisting the upgrade under the existing key. Migration changes current table classifications and rate configuration, increments the revision, and adds an audit entry. It preserves active-session rates, charge labels/amounts, product/HPP snapshots, payments, unpaid balances, pending quotes, completed records, shifts and staff. Legacy charge text can still mention the former class because historical bills are not rewritten. Migration is idempotent. Invalid data or a failed storage write opens the existing recovery screen instead of resetting financial data. The previous prototype HTML files remain untouched.
+
+The service worker cache version is bumped to v2 so an updated shell can replace the dark version. Close old demo tabs before upgrading; localStorage still has the concurrency limitations described above.
+
 ## Reports and shift definitions
 
 - Completed-sale revenue is recognized at checkout; payments are recognized at payment time. A prepaid payment and its later checkout can fall on different report dates.
@@ -31,9 +39,9 @@ Cash payments record the amount applied to the bill, not the full cash tender. C
 
 ## Visual and device design
 
-Espresso/charcoal surfaces, bronze borders, muted gold accents, a metallic gold primary button, serif headings/numbers, and crisp system UI text form the design system. No external font or image service is required. Core controls have 44–48 px touch targets. Cashier actions stay visible in the session panel on landscape tablets; detailed bill content scrolls separately. Owner views reflow for 390 px mobile screens, with horizontally scrollable catalog/report tables where needed.
+Warm white surfaces, fine neutral borders, bronze primary actions, dark text and consistent system typography form the light design system. Decorative table illustrations, marketing slogans and filler panels were removed; the floor contains only five functional table cards. No external font or image service is required. Core controls have 44–48 px touch targets. Cashier actions stay visible in the session panel on landscape tablets; detailed bill content scrolls separately. Owner views reflow for 390 px mobile screens, with horizontally scrollable catalog/report tables where needed.
 
-The supplied JPEG is included byte-for-byte at `apps/web/public/brand/golden-hand-original.jpg`. It is shown with its native aspect ratio using `height:auto`/`object-fit:contain` on login, navigation, mobile header, and bill/receipt. It was not stretched, cropped, reconstructed, or generated.
+The supplied JPEG is included byte-for-byte at `apps/web/public/brand/golden-hand-original.jpg`. It is shown with its native aspect ratio using `height:auto`/`object-fit:contain` on login, navigation, mobile header, and bill/receipt. Continuous espresso brand areas, CSS edge fades on the JPEG background, and blending remove its rectangular presentation in the app. The hand, tile and lettering are retained. Receipt rendering uses the complete, unmasked original image. The source asset was not edited, reconstructed, or generated. A supplied transparent PNG/SVG would allow a fully light logo treatment without approximating the brand.
 
 Dialogs trap focus, restore prior focus where it still exists, close with Escape, have labels, and show inline validation errors. Status is identified by text and color. Reduced-motion preferences are respected. Physical Android/tablet readability and screen-reader audits remain part of device UAT.
 

@@ -1,6 +1,6 @@
 # GOLDEN HAND MAHJONG POS
 
-Phase 1 frontend for a five-table Mahjong lounge. React + TypeScript, espresso and metallic-gold styling, responsive cashier and owner interfaces, and the supplied original brand image.
+Phase 1 frontend for a five-table Mahjong lounge. React + TypeScript, light surfaces and restrained bronze accents, responsive cashier and owner interfaces, and the supplied original brand image.
 
 **Status: working frontend DEMO, not a production POS.** Data lives in this browser's localStorage. Role selection is a preview feature, not authentication. Do not use real customer data or transactions. No backend, payment gateway, production credentials, or deployment is configured.
 
@@ -26,7 +26,7 @@ The build is written to `apps/web/dist`. The service worker is enabled only in t
 
 ## Demo functionality
 
-- Exactly **five tables**, numbered 01–05. Standard/VIP sample rates are retained from the reference; these are not confirmed commercial rates.
+- Exactly **five Standard tables**, numbered 01–05, with one shared rental setting. The sample rate is Rp80,000/hour; the actual commercial rate is not yet confirmed.
 - Start sessions with prepaid, postpaid, or mixed billing; hourly rates and 30/60/120-minute extensions.
 - Countdown rebuilt from saved timestamps. Expired sessions block new F&B orders until extended. Software cutoff never switches off a physical machine and never adds late charges.
 - Stock-aware F&B orders, price/HPP snapshots, partial cash payments, cash change, noncash pending/settlement simulation, outstanding balances, checkout, and cleaning/ready workflow.
@@ -50,7 +50,7 @@ apps/
     src/features/cashier/         Cashier POS
     src/features/owner/           Owner dashboard
     src/data/                     Demo persistence / cross-tab updates
-    src/styles.css                Dark-gold responsive design system
+    src/styles.css                Light responsive design system
   api/README.md                   Reserved Cloudflare Workers boundary
 packages/domain/                 Typed shared rules, fixtures and validators
 infra/database/README.md         Reserved database/migration boundary
@@ -76,6 +76,6 @@ Validation results and exact coverage are in [docs/TESTING.md](docs/TESTING.md).
 
 ## Handover and next phase
 
-Read [implementation notes](docs/IMPLEMENTATION.md) and [production roadmap](docs/PRODUCTION_ROADMAP.md). Resetting the demo deletes local transactions; use the JSON backup export first. There is no legacy localStorage migration because the reference prototypes used separate datasets; their original files remain available unchanged.
+Read [implementation notes](docs/IMPLEMENTATION.md), [BCA EDC integration options](docs/EDC_BCA.md), and [production roadmap](docs/PRODUCTION_ROADMAP.md). Resetting the demo deletes local transactions; use the JSON backup export first. The previous Golden Hand demo dataset upgrades automatically to five Standard tables. Its exact JSON is backed up under the existing storage key plus `-before-standard`; financial snapshots, pending quotes, and outstanding balances are preserved. Historical bill labels may retain the old class name, without keeping a VIP table or rate setting. The original reference prototypes used separate datasets and remain unchanged.
 
 **Phase 1 ends here. Backend and payment integration require owner approval. No production deployment is authorized.**

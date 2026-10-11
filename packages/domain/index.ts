@@ -44,7 +44,7 @@ export interface Session {
 }
 export interface Table {
     id: number;
-    kind: 'Standard' | 'VIP';
+    kind: 'Standard';
     state: 'available' | 'active' | 'cleaning';
     session: Session | null;
 }
@@ -98,13 +98,12 @@ export interface Audit {
     title: string;
 }
 export interface State {
-    version: 1;
+    version: 2;
     revision: number;
     tables: Table[];
     products: Product[];
     rates: {
         Standard: number;
-        VIP: number;
     };
     records: Record[];
     intents: Intent[];
@@ -162,7 +161,7 @@ export type Action = {
     productId: string;
 } | {
     type: 'rate';
-    kind: 'Standard' | 'VIP';
+    kind: 'Standard';
     price: number;
 } | {
     type: 'approval';
@@ -237,22 +236,22 @@ export function seed(now = Date.now()): State {
         ['Roti Bakar', 'Snack', 22000, 9000, 12, 'snack'],
     ].map((p, i) => ({ id: `p${i + 1}`, name: String(p[0]), category: p[1] as Category, price: Number(p[2]), cost: Number(p[3]), stock: Number(p[4]), icon: String(p[5]), min: 5, active: true }));
     const shift: Shift = { id: 'shift-demo', staff: 'Rina Putri', opened: now - 3 * 3600000, closed: null, opening: 300000, counted: null };
-    const tables: Table[] = Array.from({ length: 5 }, (_, i) => ({ id: i + 1, kind: i === 1 ? 'VIP' : 'Standard', state: 'available', session: null }));
+    const tables: Table[] = Array.from({ length: 5 }, (_, i) => ({ id: i + 1, kind: 'Standard', state: 'available', session: null }));
     for (const [tableId, minutes, offset, policy] of [[1, 120, 82, 'mixed'], [2, 180, 135, 'postpaid'], [4, 120, 48, 'postpaid'], [5, 120, 127, 'postpaid']] as const) {
         const t = tables[tableId - 1];
         t.state = 'active';
-        t.session = createSession(t, t.kind === 'VIP' ? 120000 : 80000, minutes, policy, now - offset * 60000);
+        t.session = createSession(t, 80000, minutes, policy, now - offset * 60000);
         if (tableId === 1)
             t.session.payments.push({ id: id(), method: 'cash', amount: 160000, at: t.session.started, shiftId: shift.id });
     }
     const records: Record[] = Array.from({ length: 14 }, (_, i) => {
         const at = now - Math.floor(i / 2) * 86400000 - (i % 2 ? 45 : 90) * 60000;
-        const charges: Charge[] = [{ id: id(), kind: 'rental', label: 'Sewa 2 jam · Standard', amount: i % 3 ? 160000 : 240000, cost: 0 },
+        const charges: Charge[] = [{ id: id(), kind: 'rental', label: `Sewa ${i % 3 ? 2 : 3} jam · Standard`, amount: i % 3 ? 160000 : 240000, cost: 0 },
             { id: id(), kind: 'fnb', label: 'Kopi Americano × 2', amount: 36000, cost: 12000, productId: 'p4', quantity: 2, unitPrice: 18000 }];
         return { id: `GH-DEMO-${String(i + 1).padStart(3, '0')}`, tableId: i % 5 + 1, at, charges,
             payments: [{ id: id(), method: i % 3 === 0 ? 'qris' : 'cash', amount: charges.reduce((v, c) => v + c.amount, 0), at, shiftId: localDay(at) === localDay(now) ? shift.id : 'shift-history' }] };
     });
-    return { version: 1, revision: 0, tables, products, rates: { Standard: 80000, VIP: 120000 }, records, intents: [], shifts: [shift],
+    return { version: 2, revision: 0, tables, products, rates: { Standard: 80000 }, records, intents: [], shifts: [shift],
         staff: [{ id: 'owner', name: 'Owner', role: 'owner', active: true }, { id: 'rina', name: 'Rina Putri', role: 'cashier', active: true }, { id: 'ayu', name: 'Ayu Pratama', role: 'cashier', active: true }],
         approvals: [{ id: 'approval-demo', kind: 'Refund', tableId: 2, amount: 12000, reason: 'Minuman salah input — permintaan contoh', staff: 'Rina Putri', status: 'pending', at: now - 1200000 }],
         audit: [{ id: id(), at: now, actor: 'System', title: 'Data contoh Phase 1 dibuat · tepat 5 meja' }] };
@@ -421,7 +420,7 @@ export function transition(current: State, action: Action, role: Role, now = Dat
             message = `${product.active ? 'Aktifkan' : 'Arsipkan'} ${product.name}`;
             break;
         case 'rate':
-            check(['Standard', 'VIP'].includes(action.kind) && integer(action.price, 1) && action.price % 2 === 0, 'Tarif harus rupiah bulat genap untuk extend 30 menit.');
+            check(action.kind === 'Standard' && integer(action.price, 1) && action.price % 2 === 0, 'Tarif Standard harus rupiah bulat genap untuk extend 30 menit.');
             s.rates[action.kind] = action.price;
             message = `Tarif ${action.kind} → ${money(action.price)}/jam`;
             break;
@@ -473,17 +472,22 @@ export function transition(current: State, action: Action, role: Role, now = Dat
     return s;
 }
 /** Reject malformed local data instead of silently replacing users' stored transactions. */
-export function validateState(value: unknown): value is State {
+type LegacyState = Omit<State, 'version' | 'tables' | 'rates'> & {
+    version: 1;
+    tables: (Omit<Table, 'kind'> & { kind: 'Standard' | 'VIP' })[];
+    rates: { Standard: number; VIP: number };
+};
+function validateStoredState(value: unknown, legacy: boolean): boolean {
     try {
-        const s = value as State;
-        if (!s || s.version !== 1 || !integer(s.revision) || !Array.isArray(s.tables) || s.tables.length !== 5)
+        const s = value as State | LegacyState;
+        if (!s || s.version !== (legacy ? 1 : 2) || !integer(s.revision) || !Array.isArray(s.tables) || s.tables.length !== 5)
             return false;
         const numeric = (n: number) => Number.isFinite(n) && n >= 0;
         const charge = (c: Charge) => typeof c.id === 'string' && typeof c.label === 'string' && ['rental', 'extension', 'fnb'].includes(c.kind) && integer(c.amount) && integer(c.cost);
         const payment = (p: Payment) => typeof p.id === 'string' && ['cash', 'qris', 'transfer'].includes(p.method) && integer(p.amount, 1) && numeric(p.at) && typeof p.shiftId === 'string';
-        if (!s.tables.every((t, i) => t.id === i + 1 && ['Standard', 'VIP'].includes(t.kind) && ['available', 'active', 'cleaning'].includes(t.state) && (t.state === 'active' ? t.session && typeof t.session.id === 'string' && numeric(t.session.started) && numeric(t.session.expires) && integer(t.session.rate, 1) && integer(t.session.duration, 1) && ['prepaid', 'postpaid', 'mixed'].includes(t.session.policy) && t.session.charges.every(charge) && t.session.payments.every(payment) && paid(t.session) <= total(t.session) : t.session === null)))
+        if (!s.tables.every((t, i) => t.id === i + 1 && (legacy ? ['Standard', 'VIP'].includes(t.kind) : t.kind === 'Standard') && ['available', 'active', 'cleaning'].includes(t.state) && (t.state === 'active' ? t.session && typeof t.session.id === 'string' && numeric(t.session.started) && numeric(t.session.expires) && integer(t.session.rate, 1) && integer(t.session.duration, 1) && ['prepaid', 'postpaid', 'mixed'].includes(t.session.policy) && t.session.charges.every(charge) && t.session.payments.every(payment) && paid(t.session) <= total(t.session) : t.session === null)))
             return false;
-        if (!integer(s.rates.Standard, 1) || !integer(s.rates.VIP, 1) || s.rates.Standard % 2 !== 0 || s.rates.VIP % 2 !== 0)
+        if (!integer(s.rates.Standard, 1) || s.rates.Standard % 2 !== 0 || (legacy ? !integer((s as LegacyState).rates.VIP, 1) || (s as LegacyState).rates.VIP % 2 !== 0 : Object.keys(s.rates).length !== 1))
             return false;
         if (!Array.isArray(s.products) || !s.products.every(p => typeof p.id === 'string' && typeof p.name === 'string' && typeof p.icon === 'string' && typeof p.active === 'boolean' && ['Snack', 'Minuman'].includes(p.category) && integer(p.price, 1) && integer(p.cost) && integer(p.stock) && integer(p.min)))
             return false;
@@ -502,4 +506,23 @@ export function validateState(value: unknown): value is State {
     catch {
         return false;
     }
+}
+export function validateState(value: unknown): value is State {
+    return validateStoredState(value, false);
+}
+/** Upgrade table configuration only. Never reprice an existing bill or pending quote. */
+export function migrateState(value: unknown, now = Date.now()): State {
+    if (validateState(value)) return value;
+    check(validateStoredState(value, true), 'Data demo tersimpan tidak valid. Ekspor data sebelum mereset demo.');
+    const previous = structuredClone(value) as LegacyState;
+    const next: State = {
+        ...previous,
+        version: 2,
+        revision: previous.revision + 1,
+        tables: previous.tables.map(table => ({ ...table, kind: 'Standard' })),
+        rates: { Standard: previous.rates.Standard },
+        audit: [{ id: id(), at: now, actor: 'System', title: 'Konfigurasi diperbarui: lima meja Standard; tagihan lama dipertahankan' }, ...previous.audit],
+    };
+    check(validateState(next), 'Migrasi demo gagal. Data lama tetap tersimpan.');
+    return next;
 }

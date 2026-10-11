@@ -9,7 +9,7 @@ export type Dialog = {
     tableId?: number;
     productId?: string;
     staffId?: string;
-    rateKind?: 'Standard' | 'VIP';
+    rateKind?: 'Standard';
     recordId?: string;
 };
 export function Dialogs({ dialog, state, now, onClose, onAction, onReset }: {

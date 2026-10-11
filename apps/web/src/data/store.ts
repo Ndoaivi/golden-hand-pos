@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { seed, transition, validateState } from '../../../../packages/domain/index.ts';
+import { migrateState, seed, transition, validateState } from '../../../../packages/domain/index.ts';
 import type { Action, Role, State } from '../../../../packages/domain/index.ts';
 export const STORAGE_KEY = 'golden-hand-pos-phase1-v1';
 export function useDemoStore() {
@@ -9,10 +9,13 @@ export function useDemoStore() {
         function load() {
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
-                const data: unknown = raw ? JSON.parse(raw) : seed();
-                if (!validateState(data))
-                    throw new Error('Data demo tersimpan tidak valid. Ekspor data sebelum mereset demo.');
-                if (!raw)
+                const parsed: unknown = raw ? JSON.parse(raw) : seed();
+                const data = migrateState(parsed);
+                if (raw && data !== parsed) {
+                    // Preserve the exact previous dataset before writing the upgraded configuration.
+                    localStorage.setItem(`${STORAGE_KEY}-before-standard`, raw);
+                }
+                if (!raw || data !== parsed)
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                 setState(data);
                 setError('');
