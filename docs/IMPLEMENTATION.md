@@ -49,7 +49,15 @@ Dialogs trap focus, restore prior focus where it still exists, close with Escape
 
 Bill preview distinguishes an unpaid bill from a fully paid receipt. Printed copies include a demo/salinan marker and original logo. `@page` and receipt widths target 80 mm; the Android/browser/driver may still override paper size or margins. The print action audits a request, not confirmed hardware output. There is no native ESC/POS command transport, silent printing, Bluetooth pairing, or successful-print acknowledgement.
 
-The production build registers a service worker on localhost/HTTPS. Installation caches the HTML, compiled CSS/JS and original logo, enabling offline shell reload. This is a frontend demo convenience, not a safe offline financial queue. No API writes, sync engine, conflict resolution, remote backup, or live venue synchronization exist. The original landscape JPEG is retained in the manifest; a final Android-tested icon set/install UX remains a handover task.
+The web production build registers a service worker on localhost/HTTPS. Installation caches the HTML, compiled CSS/JS and original logo, enabling offline shell reload. This is a frontend demo convenience, not a safe offline financial queue. No API writes, sync engine, conflict resolution, remote backup, or live venue synchronization exist. The original landscape JPEG is retained in the manifest; a final Android-tested PWA icon set/install UX remains a handover task.
+
+## Android cashier preview
+
+The user requested testing on an Android phone. `apps/android` wraps the same React UI with Capacitor 8.5.3; the native shell has a separate demo package ID and uses locally bundled assets, with no remote `server.url`. It starts at `/pos`. Native runtime routing always selects the cashier preview; owner remains a separate web interface. This is a presentation restriction, not server authentication. WebView localStorage and the owner's browser data are independent.
+
+Native builds skip the web service worker so APK updates cannot be masked by an older cached shell. Android system-bar inset handling and `viewport-fit=contain` keep the content clear of device bars/cutouts. The native Back callback dismisses a dialog/menu or returns to the table view before leaving the activity. Receipt preview remains available; native print is explicitly disabled until a print adapter is built. This preserves browser printing on the web version.
+
+The original JPEG is also copied byte-for-byte to a native drawable. Launcher/splash presentation uses an inset matching its original 1280:995 ratio rather than generated artwork. Android backup is disabled. No EDC, payment SDK, Bluetooth/USB permissions, release key, production credentials, backend or synchronization was added. A debug-signed APK is an internal-test deliverable only; actual-device UAT and client-controlled release signing remain pending. Installation and offline test steps are in [ANDROID_DEMO.md](ANDROID_DEMO.md).
 
 ## Security boundary
 

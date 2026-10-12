@@ -7,3 +7,15 @@ test-results/
 !.env.example
 *.log
 .DS_Store
+
+# Android build outputs and machine-specific SDK/signing configuration
+apps/android/.gradle/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/.idea/
+apps/android/capacitor-cordova-android-plugins/
+apps/android/app/src/main/assets/public/
+apps/android/app/src/main/assets/capacitor.config.json
+apps/android/app/src/main/assets/capacitor.plugins.json
+*.jks
+*.keystore

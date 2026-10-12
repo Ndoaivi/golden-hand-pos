@@ -162,6 +162,37 @@ try {
     assert.equal(await accessPage.getByRole('button',{name:'Owner Dashboard',exact:true}).count(),0);
     pass('portal-specific logout and reload keep entry pages and demo sessions separate');
   } finally { await accessContext.close(); }
+  // Browser simulation of the native runtime flag; this is not an Android hardware test.
+  const nativeContext=await browser.newContext({viewport:{width:390,height:844},hasTouch:true});
+  try {
+    await nativeContext.addInitScript(()=>{ window.androidBridge={}; });
+    const nativePage=await nativeContext.newPage();nativePage.on('pageerror',e=>errors.push(e.message));
+    await nativePage.goto(`${url}/admin`);await nativePage.getByRole('button',{name:'Cashier POS',exact:true}).click();
+    assert.equal(new URL(nativePage.url()).pathname,'/pos');
+    assert.equal(await nativePage.locator('.table-card').count(),5);
+    assert.equal(await nativePage.getByRole('button',{name:'Owner Dashboard',exact:true}).count(),0);
+    assert.ok(await nativePage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    assert.equal(await nativePage.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
+    await nativePage.getByRole('button',{name:'Meja 03 Tersedia',exact:true}).click();
+    await nativePage.getByRole('button',{name:'Mulai sesi baru'}).click();
+    assert.equal(await nativePage.evaluate(()=>window.dispatchEvent(new Event('golden-hand:native-back',{cancelable:true}))),false);
+    await nativePage.getByRole('dialog').waitFor({state:'detached'});
+    assert.equal(await nativePage.evaluate(key=>JSON.parse(localStorage.getItem(key)).tables[2].session,storageKey),null);
+    pass('native-runtime simulation stays cashier-only, fits phone width, skips web cache and Back cancels dialog');
+    await nativeContext.setOffline(true);
+    await nativePage.getByRole('button',{name:'Mulai sesi baru'}).click();
+    const nativeDialog=nativePage.getByRole('dialog');
+    await nativeDialog.getByLabel('Skema pembayaran').selectOption('postpaid');
+    await nativeDialog.getByRole('button',{name:'Mulai sesi',exact:true}).click();
+    const nativeSession=await nativePage.evaluate(key=>JSON.parse(localStorage.getItem(key)).tables[2].session.id,storageKey);
+    await nativePage.locator('.session-panel').getByRole('button',{name:'Preview / cetak bill'}).click();
+    assert.equal(await nativePage.getByRole('button',{name:'Cetak 80 mm',exact:true}).isDisabled(),true);
+    await nativePage.getByText('APK demo menyediakan preview bill. Cetak Android / ESC/POS belum terhubung.').waitFor();
+    await nativeContext.setOffline(false);await nativePage.reload();
+    await nativePage.getByRole('button',{name:'Meja 03 Aktif',exact:true}).waitFor();
+    assert.equal(await nativePage.evaluate(key=>JSON.parse(localStorage.getItem(key)).tables[2].session.id,storageKey),nativeSession);
+    pass('native-runtime simulation records an offline demo session, retains it on reload and labels unavailable native printing');
+  } finally { await nativeContext.close(); }
   await page.evaluate(key=>localStorage.setItem(key,'{"invalid":true}'),storageKey);await page.reload();await page.getByRole('heading',{name:'Data demo tidak dapat dimuat'}).waitFor();pass('corrupt localStorage displays recoverable error without silently deleting data');
   assert.deepEqual(errors,[]);console.log(`\n${count} browser checks passed; ${errors.length} uncaught page errors. Screenshots: docs/previews/`);
 } finally { await context.close();await browser.close();await new Promise(resolve=>server.close(resolve)); }

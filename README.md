@@ -2,7 +2,7 @@
 
 Phase 1 frontend for a five-table Mahjong lounge. React + TypeScript, light surfaces and restrained bronze accents, responsive cashier and owner interfaces, and the supplied original brand image.
 
-**Status: working frontend DEMO, not a production POS.** Data lives in this browser's localStorage. Separate entry confirmations are preview features, not authentication. Do not use real customer data or transactions. No backend, payment gateway, production credentials, or deployment is configured.
+**Status: working frontend DEMO, not a production POS.** Web and Android demo data lives in each browser/WebView's localStorage. Separate entry confirmations are preview features, not authentication. Do not use real customer data or transactions. No backend, payment gateway, production credentials, or deployment is configured.
 
 Development repository: **[Ndoaivi/golden-hand-pos](https://github.com/Ndoaivi/golden-hand-pos)**. The original [Ndoaivi/mahjong-pos](https://github.com/Ndoaivi/mahjong-pos) is strictly read-only.
 
@@ -26,6 +26,8 @@ The build is written to `apps/web/dist`. The service worker is enabled only in t
 
 ## Demo functionality
 
+An installable **Android cashier demo** is now available. See [APK installation and phone test steps](docs/ANDROID_DEMO.md). It bundles the existing React frontend with Capacitor, always enters the cashier preview, and loads local assets without a web service worker. Owner remains on the web portal. APK data is not synchronized to the owner browser. Native printing and EDC are not connected.
+
 - Exactly **five Standard tables**, numbered 01–05, with one shared rental setting. The sample rate is Rp80,000/hour; the actual commercial rate is not yet confirmed.
 - Start sessions with prepaid, postpaid, or mixed billing; hourly rates and 30/60/120-minute extensions.
 - Countdown rebuilt from saved timestamps. Expired sessions block new F&B orders until extended. Software cutoff never switches off a physical machine and never adds late charges.
@@ -45,6 +47,7 @@ Cashier screens contain no price, HPP, rate, inventory-adjustment, staff, reset,
 
 ```text
 apps/
+  android/                       Native cashier demo shell, Gradle wrapper and original brand drawable
   web/
     public/brand/                 Original supplied logo, unchanged
     public/sw.js                  Static-shell offline cache
@@ -57,6 +60,8 @@ apps/
 packages/domain/                 Typed shared rules, fixtures and validators
 infra/database/README.md         Reserved database/migration boundary
 tests/                           Domain and browser acceptance checks
+scripts/build-android.mjs        Debug APK build, Android lint and checksum packaging
+downloads/                      Internal test APK and SHA-256 (not a production release)
 docs/                            Implementation, validation, production roadmap
 docs/previews/                    Captured screenshots
 docs/reference/                  Unmodified reference engineering documents

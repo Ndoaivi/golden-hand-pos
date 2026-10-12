@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { FormEvent, ReactNode } from 'react';
 import { date, drawer, due, money, openShift, paid, pendingFor, status, time, total } from '../../../../packages/domain/index.ts';
 import type { Action, Method, Policy, State } from '../../../../packages/domain/index.ts';
@@ -160,11 +161,13 @@ export function Dialogs({ dialog, state, now, onClose, onAction, onReset }: {
         <p>Terima kasih atas kunjungan Anda.<br />Semoga tangan emas selalu menyertai.</p>
         <small>Preview / salinan demo · {date(now)} {time(now)} WIB</small>
         </article>
-        <p className="muted small">ESC/POS langsung memerlukan print bridge dan pengujian printer fisik pada fase berikutnya.</p>
+        <p className="muted small">{Capacitor.isNativePlatform()
+            ? 'APK demo menyediakan preview bill. Cetak Android / ESC/POS belum terhubung.'
+            : 'ESC/POS langsung memerlukan print bridge dan pengujian printer fisik pada fase berikutnya.'}</p>
         </div>
       <div className="modal-actions">
         <button className="button" onClick={onClose}>Tutup</button>
-        <button className="button primary" onClick={() => { try {
+        <button className="button primary" disabled={Capacitor.isNativePlatform()} onClick={() => { try {
             onAction({ type: 'print', label: `${remaining === 0 ? 'Receipt' : 'Bill'} ${s.id.slice(0, 12)} · preview/salinan` });
             window.print();
         }

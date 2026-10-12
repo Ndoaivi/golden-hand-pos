@@ -26,6 +26,15 @@ export default function App() {
         error: boolean;
     } | null>(null);
     useEffect(() => {
+        const back = (event: Event) => {
+            if (dialog) { setDialog(null); event.preventDefault(); }
+            else if (navOpen) { setNavOpen(false); event.preventDefault(); }
+            else if (view !== 'tables' && role === 'cashier') { setView('tables'); event.preventDefault(); }
+        };
+        window.addEventListener('golden-hand:native-back', back);
+        return () => window.removeEventListener('golden-hand:native-back', back);
+    }, [dialog, navOpen, view, role]);
+    useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 1000);
         const connected = () => setOnline(navigator.onLine);
         window.addEventListener('online', connected);

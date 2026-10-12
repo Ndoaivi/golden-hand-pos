@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/golden_hand_original"
+    android:insetLeft="19%" android:insetRight="19%"
+    android:insetTop="25.90234375%" android:insetBottom="25.90234375%" />

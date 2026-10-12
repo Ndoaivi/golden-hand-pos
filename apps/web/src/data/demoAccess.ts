@@ -1,9 +1,12 @@
 import type { Role } from '../../../../packages/domain/index.ts';
+import { Capacitor } from '@capacitor/core';
 
 // Separate demo entry points. These helpers do not authenticate a real staff member.
 export const portalPaths: Record<Role, string> = { cashier: '/pos', owner: '/admin' };
 
 export function portalFromPath(path: string): Role {
+    // The APK is a cashier preview. Production access still requires server RBAC.
+    if (Capacitor.isNativePlatform()) return 'cashier';
     return path.replace(/\/$/, '') === portalPaths.owner ? 'owner' : 'cashier';
 }
 
