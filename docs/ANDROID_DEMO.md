@@ -47,3 +47,7 @@ Pilih perangkat Android dan klik Run. USB debugging hanya diperlukan untuk metod
 Android source ada di `apps/android`, UI di `apps/web`, aturan bisnis di `packages/domain`. Config native ada di `capacitor.config.ts`. Tidak ada `server.url`, live reload eksternal, payment SDK, kredensial produksi, atau izin Bluetooth/USB yang belum diperlukan. Logo asli disalin tanpa perubahan byte; drawable icon memberi ruang dengan rasio 1280:995.
 
 Referensi resmi: [Capacitor Android](https://capacitorjs.com/docs/android), [persiapan lingkungan](https://capacitorjs.com/docs/getting-started/environment-setup). Bukti pengujian ada di [TESTING.md](TESTING.md). Pengujian browser dengan simulasi platform native tidak menggantikan pengujian perangkat Android fisik.
+
+## Pembaruan pengingat 10 menit
+
+APK versi `0.1.1-demo` / versionCode 2 memakai package ID dan debug signer yang sama dengan APK uji sebelumnya. Pasang di atas versi lama tanpa uninstall agar data demo tetap ada. Saat sisa sesi mencapai 10 menit, layar kasir menampilkan pengingat dan kartu meja diberi penanda amber. `Sudah diingatkan` menutup pemberitahuan untuk batas waktu tersebut; extend membuat pengingat berikutnya mengikuti waktu baru. Pengingat masih visual saat aplikasi terbuka, termasuk offline; belum ada bunyi atau notifikasi Android saat aplikasi ditutup / layar terkunci.

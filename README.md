@@ -30,6 +30,7 @@ An installable **Android cashier demo** is now available. See [APK installation 
 
 - Exactly **five Standard tables**, numbered 01–05, with one shared rental setting. The sample rate is Rp80,000/hour; the actual commercial rate is not yet confirmed.
 - Start sessions with prepaid, postpaid, or mixed billing; hourly rates and 30/60/120-minute extensions.
+- Visual reminders at 10 minutes remaining across cashier screens; acknowledgement survives reload, and extensions get a fresh reminder. These work while the app is open, including offline; OS notifications and sound are not implemented.
 - Countdown rebuilt from saved timestamps. Expired sessions block new F&B orders until extended. Software cutoff never switches off a physical machine and never adds late charges.
 - Stock-aware F&B orders, price/HPP snapshots, partial cash payments, cash change, noncash pending/settlement simulation, outstanding balances, checkout, and cleaning/ready workflow.
 - Shared local state across cashier/owner tabs on the same browser origin. Owner edits apply to future sessions/orders; historical snapshots remain unchanged.

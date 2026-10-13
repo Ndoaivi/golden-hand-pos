@@ -9,6 +9,7 @@ import { Dialogs } from './components/dialogs.tsx';
 import type { Dialog } from './components/dialogs.tsx';
 import { Cashier } from './features/cashier/Cashier.tsx';
 import { Owner } from './features/owner/Owner.tsx';
+import { SessionReminders } from './components/SessionReminders.tsx';
 const cashierNav = [{ id: 'tables', label: 'Meja & sesi', icon: 'tables' }, { id: 'menu', label: 'Food & beverage', icon: 'coffee' }, { id: 'transactions', label: 'Transaksi & shift', icon: 'receipt' }];
 const ownerNav = [{ id: 'overview', label: 'Overview', icon: 'overview' }, { id: 'tables', label: 'Monitoring meja', icon: 'tables' }, { id: 'reports', label: 'Laporan penjualan', icon: 'chart' }, { id: 'catalog', label: 'Katalog & stok', icon: 'inventory' }, { id: 'pricing', label: 'Tarif meja', icon: 'wallet' }, { id: 'approvals', label: 'Refund & void', icon: 'shield' }, { id: 'staff', label: 'Staf & shift', icon: 'staff' }, { id: 'audit', label: 'Audit trail', icon: 'history' }];
 export default function App() {
@@ -195,6 +196,7 @@ export default function App() {
       {!online && <div className="offline-banner" role="status">
         <Icon name="alert" size={17}/>Offline · demo memakai data browser ini. Tidak tersinkron ke server.</div>}
       <main id="main-content" tabIndex={-1}>{role === 'owner' ? <Owner state={state} now={now} view={view} onDialog={setDialog} onAction={safeAction} onView={navigate}/> : <Cashier state={state} now={now} view={view} selected={selected} onSelect={setSelected} onDialog={setDialog} onAction={safeAction} onView={navigate}/>}</main>
+      {role === 'cashier' && <SessionReminders state={state} now={now} onViewTable={id => { setSelected(id); navigate('tables'); }}/>}
       <footer className="app-footer">
     <span>GOLDEN HAND MAHJONG</span>
     <span>Phase 1 preview · penyimpanan lokal</span>

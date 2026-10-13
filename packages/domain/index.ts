@@ -195,6 +195,13 @@ export const total = (s: Pick<Session, 'charges'> | null) => s?.charges.reduce((
 export const paid = (s: Pick<Session, 'payments'> | null) => s?.payments.reduce((sum, p) => sum + p.amount, 0) ?? 0;
 export const due = (s: Session | null) => Math.max(0, total(s) - paid(s));
 export const status = (t: Table, now: number): TableStatus => t.state === 'active' && t.session && t.session.expires <= now ? 'expired' : t.state;
+export const SESSION_REMINDER_MS = 10 * 60000;
+export const sessionEndingSoon = (table: Table, now: number): boolean =>
+    table.state === 'active' && table.session !== null &&
+    table.session.expires > now && table.session.expires - now <= SESSION_REMINDER_MS;
+// Each extension has its own reminder; acknowledgements never change financial data.
+export const sessionReminderKey = (table: Table): string | null =>
+    table.session ? `${table.session.id}:${table.session.expires}` : null;
 export const countdown = (expires: number, now: number) => {
     const seconds = Math.max(0, Math.ceil((expires - now) / 1000));
     return [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(n => String(n).padStart(2, '0')).join(':');

@@ -193,6 +193,51 @@ try {
     assert.equal(await nativePage.evaluate(key=>JSON.parse(localStorage.getItem(key)).tables[2].session.id,storageKey),nativeSession);
     pass('native-runtime simulation records an offline demo session, retains it on reload and labels unavailable native printing');
   } finally { await nativeContext.close(); }
+  const reminderContext=await browser.newContext({viewport:{width:1280,height:800},hasTouch:true});
+  try {
+    const reminderPage=await reminderContext.newPage();reminderPage.on('pageerror',e=>errors.push(e.message));
+    await reminderPage.clock.install({time:new Date()});
+    await reminderPage.goto(`${url}/pos`);await reminderPage.getByRole('button',{name:'Cashier POS',exact:true}).click();
+    await reminderPage.evaluate(key=>{
+      const data=JSON.parse(localStorage.getItem(key));
+      data.tables[0].session.expires=Date.now()+600001;
+      data.tables[1].session.expires=Date.now()+600001;
+      localStorage.setItem(key,JSON.stringify(data));window.dispatchEvent(new StorageEvent('storage',{key}));
+    },storageKey);
+    assert.equal(await reminderPage.getByRole('complementary',{name:'Pengingat sesi meja'}).count(),0);
+    await reminderPage.clock.runFor(1001);
+    const reminders=reminderPage.getByRole('complementary',{name:'Pengingat sesi meja'});
+    await reminders.waitFor();assert.match(await reminders.innerText(),/Meja 01, Meja 02/);
+    assert.equal(await reminderPage.locator('.table-card.ending-soon').count(),2);
+    const checkoutBox=await reminderPage.locator('.checkout-button').boundingBox();
+    assert.ok(checkoutBox.y+checkoutBox.height<=800);
+    await reminderPage.screenshot({path:resolve(screenshots,'session-reminder-tablet.png'),fullPage:false});
+    await reminderPage.setViewportSize({width:390,height:844});
+    assert.ok(await reminderPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    const acknowledgeBox=await reminders.getByRole('button',{name:'Sudah diingatkan meja 02',exact:true}).boundingBox();
+    assert.ok(acknowledgeBox.y>=0 && acknowledgeBox.y+acknowledgeBox.height<=844);
+    await reminderPage.screenshot({path:resolve(screenshots,'session-reminder-phone.png'),fullPage:false});
+    await reminderPage.setViewportSize({width:1280,height:800});
+    await reminderPage.getByRole('button',{name:'Food & beverage',exact:true}).click();
+    await reminders.waitFor();pass('two ten-minute reminders appear across cashier views without pushing tablet checkout offscreen');
+    await reminders.getByRole('button',{name:'Sudah diingatkan meja 01',exact:true}).click();
+    await reminderPage.reload();await reminderPage.getByRole('button',{name:'Meja & sesi',exact:true}).waitFor();
+    assert.equal(await reminders.getByRole('button',{name:'Sudah diingatkan meja 01',exact:true}).count(),0);
+    await reminders.getByRole('button',{name:'Lihat meja 02',exact:true}).click();
+    await reminderPage.locator('.session-panel').getByRole('button',{name:'Extend',exact:true}).click();
+    await reminderPage.getByRole('dialog').getByLabel('Tambahan durasi').selectOption('30');
+    await reminderPage.getByRole('dialog').getByRole('button',{name:'Simpan & lanjutkan'}).click();
+    await reminders.waitFor({state:'detached'});
+    await reminderContext.setOffline(true);await reminderPage.clock.fastForward(30*60000);
+    await reminders.getByRole('button',{name:'Sudah diingatkan meja 02',exact:true}).waitFor();
+    assert.equal(await reminders.getByRole('button',{name:'Sudah diingatkan meja 01',exact:true}).count(),0);
+    pass('acknowledgement survives reload; extension clears the old reminder and a new reminder appears offline after time advances');
+    await reminderPage.clock.fastForward(10*60000);await reminders.waitFor({state:'detached'});
+    await reminderPage.getByRole('button',{name:'Meja 02 Waktu habis',exact:true}).waitFor();
+    assert.equal(await reminderPage.locator('.table-card.ending-soon').count(),0);
+    await reminderContext.setOffline(false);
+    pass('returning after expiry removes the reminder and keeps software cutoff active');
+  } finally { await reminderContext.close(); }
   await page.evaluate(key=>localStorage.setItem(key,'{"invalid":true}'),storageKey);await page.reload();await page.getByRole('heading',{name:'Data demo tidak dapat dimuat'}).waitFor();pass('corrupt localStorage displays recoverable error without silently deleting data');
   assert.deepEqual(errors,[]);console.log(`\n${count} browser checks passed; ${errors.length} uncaught page errors. Screenshots: docs/previews/`);
 } finally { await context.close();await browser.close();await new Promise(resolve=>server.close(resolve)); }

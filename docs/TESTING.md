@@ -1,4 +1,4 @@
-# Phase 1 validation — 12 October 2026 (Asia/Jakarta)
+# Phase 1 validation — 13 October 2026 (Asia/Jakarta)
 
 ## Automated results
 
@@ -6,10 +6,10 @@
 |---|---|
 | `npm run build` | PASS — strict TypeScript and Vite bundle |
 | `npm run lint` | PASS — no ESLint errors/warnings |
-| `npm test` | PASS — 27 domain tests |
-| `npm run test:e2e` | PASS — 26 browser checks, 0 uncaught page errors |
+| `npm test` | PASS — 29 domain tests |
+| `npm run test:e2e` | PASS — 29 browser checks, 0 uncaught page errors |
 
-Production bundle: approximately 284 kB JavaScript (87 kB gzip), 44 kB CSS (9 kB gzip), plus the 69 kB original JPEG. No remote runtime fonts, images, payment SDKs, or charts are loaded.
+Production bundle: approximately 286 kB JavaScript (87 kB gzip), 45 kB CSS (9 kB gzip), plus the 69 kB original JPEG. No remote runtime fonts, images, payment SDKs, or charts are loaded.
 
 ## Domain coverage
 
@@ -38,10 +38,16 @@ Future tests and release gates are in [PRODUCTION_ROADMAP.md](PRODUCTION_ROADMAP
 - `npm run android:apk`: PASS — frontend build, Capacitor sync, Gradle `assembleDebug` and `lintDebug`. Final native-only packaging/backup configuration was rebuilt with `node scripts/build-android.mjs`: PASS.
 - Toolchain: Capacitor 8.5.3, Android Gradle Plugin 8.13.0, Gradle 8.14.3, JDK 21, Android SDK 36 (AGP also installed its required Build Tools 35).
 - `apksigner verify --verbose`: PASS — APK Signature Scheme v2, one debug signer. This is not a client release signature.
-- Packaged metadata: `com.goldenhand.mahjong.pos.demo`, version `0.1.0-demo`, minimum API 24 / Android 7, target API 36.
+- Packaged metadata: `com.goldenhand.mahjong.pos.demo`, version `0.1.1-demo` (versionCode 2), minimum API 24 / Android 7, target API 36.
 - Static package inspection: PASS — local HTML and every referenced compiled CSS/JS asset present, original logo bytes unchanged, cashier `/pos` start path, no remote server URL. Packaged Android manifest disables backups and declares extraction/transfer exclusions.
-- APK: `4,434,194` bytes; SHA-256 `351ea24b82dee02a5c61536566051e30d9c0f3a05fb9a8ddd438698d2d0f521a`. File and checksum are in `downloads/`.
+- APK: `4,151,879` bytes; SHA-256 `1f0fafa7a4fe07ac1c1f0d9da2fd6e0582c21eeef7fc2dfacf6f04b611d118cf`. File and checksum are in `downloads/`.
 - Android app lint: PASS with 0 errors and 6 warnings. Findings are Gradle/appcompat update recommendations, the old-API backup-rule recommendation, generated Cordova XML marked unused, and missing monochrome themed launcher icons. Explicit backup flags are false and Android 12+ extraction exclusions are supplied. The full original logo is retained instead of creating substitute monochrome artwork. Capacitor's library lint uses its vendor-provided baseline (six existing findings filtered); no project baseline or suppression was added.
 - No Android emulator or physical phone was available. Installation, actual Android Back behavior, system bars, airplane-mode cold start, process death/reopen, WebView storage, EDC and thermal printer still require device UAT. Browser native-flag simulation is not evidence of those hardware outcomes.
 
 See [Android installation and phone test steps](ANDROID_DEMO.md).
+
+## Ten-minute reminders — 13 October 2026
+
+Two additional domain cases cover the exact 10-minute boundary, late return into the warning window, exclusion of expired/inactive sessions, and a new reminder identity after extension. Three browser checks cover simultaneous reminders, visibility across cashier menus, saved acknowledgement across reload, extension clearing the old reminder and later generating a new one offline, and removal at expiry. With reminders shown, tablet checkout stays within 1280×800 and the acknowledgement controls fit a 390×844 phone without horizontal overflow. Preview screenshots are `session-reminder-tablet.png` and `session-reminder-phone.png`; these are browser captures, not physical Android screenshots.
+
+Updated `npm run android:apk`: PASS — build, Capacitor sync, `assembleDebug`, `lintDebug`. Updated APK signature, embedded assets and checksum verified. APK's signing-certificate SHA-256 matches the previous test APK, so it is suitable for an in-place test update without uninstalling. Minimum API 24 and target API 36 are unchanged. No OS notification or background alarm is implemented; reminders are visual while the app is open. Android app lint remains passing with warnings listed above. No physical phone/tablet, EDC, printer or customer reminder hardware was tested.

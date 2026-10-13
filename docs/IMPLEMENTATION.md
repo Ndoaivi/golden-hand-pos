@@ -70,3 +70,19 @@ Demo roles hide incompatible screens and shared action checks prevent accidental
 Approval decisions update a local request status and audit entry only. They do not issue refunds, reverse a charge, restore stock, or reconcile an EDC/gateway. Production audit must be append-only in a protected backend, with full transactional reversals.
 
 No Supabase project was connected, no migration was executed, no Cloudflare Worker was deployed, no Midtrans/EDC request was made, and no production credential was added.
+
+## Pengingat sisa sesi — 13 October 2026
+
+Kasir mendapat pemberitahuan di semua menu saat sebuah sesi aktif memiliki sisa waktu lebih dari nol dan paling banyak 10 menit, termasuk tepat pada batas 10:00. Kartu meja dan countdown juga memiliki penanda amber. Waktu dihitung dari `session.expires`; ketika layar aktif kembali setelah melewati ambang, pengingat tetap muncul jika sesi belum kedaluwarsa. Sesi kedaluwarsa memakai status cutoff yang sudah ada, bukan peringatan 10 menit.
+
+Tombol `Sudah diingatkan` menyimpan konfirmasi lokal untuk pasangan session ID / waktu selesai, terpisah dari ledger pada key `golden-hand-session-reminders-v1`. Konfirmasi bertahan setelah reload dan berbagi lewat storage events dalam browser yang sama. Setiap meja menyimpan paling banyak satu key konfirmasi; pengingat tidak mengubah durasi, biaya, pembayaran, stok, atau audit transaksi. Kegagalan menyimpan konfirmasi tetap menampilkan pengingat dan pesan kesalahan.
+
+Extend mengubah waktu selesai sehingga konfirmasi sebelumnya tidak menekan pengingat berikutnya. Checkout / kedaluwarsa menghapus sesi dari daftar pengingat. Panel tampil tanpa menambah tinggi layout tablet dan mengikuti ukuran HP; pengingat tidak masuk cetakan. Owner melihat penanda meja, tetapi panel pemberitahuan hanya tampil untuk kasir. Ambang demo tetap 10 menit, belum ada editor owner untuk mengubahnya.
+
+Pengingat ini visual, saat aplikasi terbuka, dan bekerja tanpa internet. Tidak ada suara atau notifikasi OS saat aplikasi ditutup / layar terkunci. Penjadwalan notifikasi lokal Android dengan izin serta penanganan extend, checkout dan restart merupakan pekerjaan berikutnya; lihat [dokumentasi resmi Capacitor](https://capacitorjs.com/docs/apis/local-notifications). Tidak ada plugin notification, izin alarm, backend atau payment integration ditambahkan.
+
+### Pengingat kepada pelanggan (rencana)
+
+Alur awal: pemberitahuan 10 menit muncul di kasir, lalu staf mengingatkan pelanggan pada meja tersebut dan menawarkan extend. Extend tetap membutuhkan pilihan serta pencatatan kasir; pengingat tidak memperpanjang atau menagih otomatis.
+
+Untuk otomatisasi berikutnya, setiap meja dapat memakai indikator / buzzer yang terhubung melalui jaringan dan pengendali lokal di venue agar tetap berfungsi ketika internet mati. Alternatif WhatsApp memerlukan nomor pelanggan dan layanan WhatsApp Business, serta koneksi internet. Nomor meja dan waktu selesai harus ikut pesan agar tidak salah penerima; pengiriman perlu dicegah ganda dan dibatalkan/dijadwalkan ulang setelah extend atau checkout. Belum ada perangkat, provider, nomor pelanggan atau layanan pengiriman yang dihubungkan.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { countdown, date, drawer, due, money, openShift, paid, pendingFor, status, time, total } from '../../../../../packages/domain/index.ts';
+import { countdown, date, drawer, due, money, openShift, paid, pendingFor, sessionEndingSoon, status, time, total } from '../../../../../packages/domain/index.ts';
 import type { Action, State, TableStatus } from '../../../../../packages/domain/index.ts';
 import { Badge, Empty, Icon, labels, Metric, TableCard } from '../../components/ui.tsx';
 import type { Dialog } from '../../components/dialogs.tsx';
@@ -189,7 +189,7 @@ export function Cashier({ state, now, view, selected, onSelect, onDialog, onActi
         <div className={`countdown-panel ${st === 'expired' ? 'expired' : ''}`}>
         <span className="eyebrow">{st === 'expired' ? 'WAKTU HABIS' : 'SISA WAKTU'}</span>
         <strong>{countdown(session.expires, now)}</strong>
-        <span>{st === 'expired' ? 'Software cutoff aktif' : `Cutoff ${time(session.expires)} WIB`}</span>{st === 'active' && session.expires - now < 600000 && <small className="text-warning">Kurang dari 10 menit tersisa</small>}</div>
+        <span>{st === 'expired' ? 'Software cutoff aktif' : `Cutoff ${time(session.expires)} WIB`}</span>{sessionEndingSoon(table, now) && <small className="text-warning">Sisa 10 menit atau kurang</small>}</div>
         <div className="detail-row">
         <span>Mulai sesi</span>
         <strong>{time(session.started)} WIB</strong>

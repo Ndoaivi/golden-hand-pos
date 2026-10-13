@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { countdown, money, status } from '../../../../packages/domain/index.ts';
+import { countdown, money, sessionEndingSoon, status } from '../../../../packages/domain/index.ts';
 import type { State, Table, TableStatus } from '../../../../packages/domain/index.ts';
 const paths: Record<string, ReactNode> = {
     tables: <>
@@ -124,8 +124,9 @@ export function TableCard({ table, now, selected, compact, onClick, state }: {
     state: State;
 }) {
     const st = status(table, now);
+    const ending = sessionEndingSoon(table, now);
     const pending = state.intents.some(i => i.tableId === table.id && i.status === 'pending');
-    return <button className={`table-card ${st} ${selected ? 'selected' : ''} ${compact ? 'compact' : ''}`} onClick={onClick} aria-pressed={selected} aria-label={`Meja ${String(table.id).padStart(2, '0')} ${labels[st]}`}>
+    return <button className={`table-card ${st} ${ending ? 'ending-soon' : ''} ${selected ? 'selected' : ''} ${compact ? 'compact' : ''}`} onClick={onClick} aria-pressed={selected} aria-label={`Meja ${String(table.id).padStart(2, '0')} ${labels[st]}`}>
     <div className="table-card-top">
     <span className="table-no">Meja {String(table.id).padStart(2, '0')}</span>
     <Badge kind={st}>{pending ? 'Bayar pending' : labels[st]}</Badge>
@@ -135,7 +136,7 @@ export function TableCard({ table, now, selected, compact, onClick, state }: {
     <h3>{table.kind}</h3>
     <span className="muted">{money(table.session?.rate ?? state.rates.Standard)} / jam</span>
     </div>
-    <div className="table-time">{table.session ? countdown(table.session.expires, now) : <Icon name={st === 'cleaning' ? 'check' : 'plus'} size={24}/>}<small>{table.session ? st === 'expired' ? 'Software cutoff' : 'Sisa waktu' : st === 'cleaning' ? 'Persiapan meja' : 'Mulai sesi'}</small>
+    <div className="table-time">{table.session ? countdown(table.session.expires, now) : <Icon name={st === 'cleaning' ? 'check' : 'plus'} size={24}/>}<small>{table.session ? st === 'expired' ? 'Software cutoff' : ending ? '≤ 10 menit' : 'Sisa waktu' : st === 'cleaning' ? 'Persiapan meja' : 'Mulai sesi'}</small>
     </div>
     </div>
     {table.session && <div className="table-balance">

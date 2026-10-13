@@ -1,10 +1,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { seed, transition, status, countdown, due, paid, total, validateState, migrateState, drawer, openShift, report, localDay } from '../packages/domain/index.ts';
+import { seed, transition, status, countdown, due, paid, total, validateState, migrateState, drawer, openShift, report, localDay, SESSION_REMINDER_MS, sessionEndingSoon, sessionReminderKey } from '../packages/domain/index.ts';
 
 const now = Date.UTC(2026, 9, 11, 8, 0);
 const change = (s,a,role='cashier',at=now) => transition(s,a,role,at);
 const start = (s,extra={}) => change(s,{type:'start',tableId:3,minutes:120,policy:'postpaid',method:'cash',tendered:160000,...extra});
+
+test('ten-minute reminder includes exact boundary and catches resume, excluding expired/inactive sessions', () => {
+  const s=seed(now),table=s.tables[1],expires=table.session.expires;
+  assert.equal(sessionEndingSoon(table,expires-SESSION_REMINDER_MS-1),false);
+  assert.equal(sessionEndingSoon(table,expires-SESSION_REMINDER_MS),true);
+  assert.equal(sessionEndingSoon(table,expires-7*60000),true);
+  assert.equal(sessionEndingSoon(table,expires-1),true);
+  assert.equal(sessionEndingSoon(table,expires),false);
+  assert.equal(sessionEndingSoon(table,expires+60000),false);
+  assert.equal(sessionEndingSoon(s.tables[2],now),false);
+  assert.equal(sessionEndingSoon({...table,state:'cleaning'},expires-60000),false);
+});
+test('extension gives a new reminder identity without changing the session identity', () => {
+  const s=seed(now),table=s.tables[1],at=table.session.expires-60000,originalKey=sessionReminderKey(table);
+  const next=change(s,{type:'extend',tableId:2,minutes:30,method:'cash',tendered:0},'cashier',at);
+  assert.equal(next.tables[1].session.id,table.session.id);
+  assert.notEqual(sessionReminderKey(next.tables[1]),originalKey);
+  assert.equal(sessionEndingSoon(next.tables[1],at),false);
+  assert.equal(sessionEndingSoon(next.tables[1],next.tables[1].session.expires-SESSION_REMINDER_MS),true);
+});
 
 test('seed and all initial states contain exactly five unique table slots', () => {
   const s = seed(now); assert.equal(validateState(s),true); assert.deepEqual(s.tables.map(t => t.id),[1,2,3,4,5]);
