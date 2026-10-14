@@ -6,5 +6,5 @@
     "allowImportingTsExtensions": true, "verbatimModuleSyntax": true,
     "noUnusedLocals": true, "noUnusedParameters": true
   },
-  "include": ["apps/web/src", "packages/domain"]
+  "include": ["apps/web/src", "packages/domain", "packages/devices"]
 }

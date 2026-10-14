@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { date, openShift, time } from '../../../packages/domain/index.ts';
 import type { Action, Role } from '../../../packages/domain/index.ts';
 import { downloadData, useDemoStore } from './data/store.ts';
-import { enterDemoPortal, leaveDemoPortal, portalFromPath, portalPaths, readDemoRole } from './data/demoAccess.ts';
+import { enterDemoPortal, leaveDemoPortal, portalFromPath, readDemoRole, replaceDemoPath } from './data/demoAccess.ts';
 import { Brand, Empty, Icon } from './components/ui.tsx';
 import { Dialogs } from './components/dialogs.tsx';
 import type { Dialog } from './components/dialogs.tsx';
@@ -46,10 +46,10 @@ export default function App() {
         return; const timeout = setTimeout(() => setToast(null), 5000); return () => clearTimeout(timeout); }, [toast]);
     useEffect(() => {
         const initial = portalFromPath(window.location.pathname);
-        window.history.replaceState({}, '', portalPaths[initial]);
+        replaceDemoPath(initial);
         const pop = () => {
             const next = portalFromPath(window.location.pathname);
-            window.history.replaceState({}, '', portalPaths[next]);
+            replaceDemoPath(next);
             setPortal(next);
             setRole(readDemoRole(next));
             setView(next === 'owner' ? 'overview' : 'tables');
@@ -66,7 +66,7 @@ export default function App() {
         setNavOpen(false);
         setDialog(null);
         enterDemoPortal(portal);
-        window.history.replaceState({}, '', portalPaths[portal]);
+        replaceDemoPath(portal);
         window.scrollTo({ top: 0 });
     }
     function logout() {
@@ -195,6 +195,7 @@ export default function App() {
     </header>
       {!online && <div className="offline-banner" role="status">
         <Icon name="alert" size={17}/>Offline · demo memakai data browser ini. Tidak tersinkron ke server.</div>}
+      {role === 'owner' && <div className="owner-demo-notice" role="status"><Icon name="info" size={17}/>Demo owner · data di perangkat ini. Belum terhubung ke APK kasir.</div>}
       <main id="main-content" tabIndex={-1}>{role === 'owner' ? <Owner state={state} now={now} view={view} onDialog={setDialog} onAction={safeAction} onView={navigate}/> : <Cashier state={state} now={now} view={view} selected={selected} onSelect={setSelected} onDialog={setDialog} onAction={safeAction} onView={navigate}/>}</main>
       {role === 'cashier' && <SessionReminders state={state} now={now} onViewTable={id => { setSelected(id); navigate('tables'); }}/>}
       <footer className="app-footer">

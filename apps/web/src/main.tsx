@@ -13,6 +13,8 @@ createRoot(document.getElementById('root')!).render(<StrictMode>
 </ErrorBoundary>
 </StrictMode>);
 // Native builds load assets from the APK; a web cache can leave an old UI after an update.
-if (import.meta.env.PROD && !Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
+if (import.meta.env.PROD && !Capacitor.isNativePlatform() &&
+    !document.documentElement.dataset.demoPortal &&
+    ['http:', 'https:'].includes(window.location.protocol) && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => { }); });
 }

@@ -11,11 +11,13 @@
     "build": "tsc --noEmit && vite build apps/web",
     "preview": "vite preview apps/web --host 0.0.0.0",
     "lint": "eslint .",
-    "test": "node --test --test-isolation=none tests/domain.test.mjs",
+    "test": "node --test --test-isolation=none tests/domain.test.mjs tests/devices.test.mjs",
     "test:e2e": "node tests/browser.mjs",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
-    "android:apk": "npm run android:sync && node scripts/build-android.mjs"
+    "android:apk": "npm run android:sync && node scripts/build-android.mjs",
+    "owner:preview": "npm run build && node scripts/package-owner-preview.mjs",
+    "test:owner-preview": "node tests/owner-preview.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",

@@ -1,4 +1,4 @@
-# Phase 1 validation — 13 October 2026 (Asia/Jakarta)
+# Phase 1 validation — 14 October 2026 (UTC)
 
 ## Automated results
 
@@ -6,8 +6,10 @@
 |---|---|
 | `npm run build` | PASS — strict TypeScript and Vite bundle |
 | `npm run lint` | PASS — no ESLint errors/warnings |
-| `npm test` | PASS — 29 domain tests |
+| `npm test` | PASS — 36 tests: 29 domain + 7 device-boundary tests |
 | `npm run test:e2e` | PASS — 29 browser checks, 0 uncaught page errors |
+| `npm run owner:preview` | PASS — compiled self-contained owner HTML and SHA-256 |
+| `npm run test:owner-preview` | PASS — 4 standalone artifact checks, 0 uncaught page errors |
 
 Production bundle: approximately 286 kB JavaScript (87 kB gzip), 45 kB CSS (9 kB gzip), plus the 69 kB original JPEG. No remote runtime fonts, images, payment SDKs, or charts are loaded.
 
@@ -32,6 +34,14 @@ Two additional browser checks simulate Capacitor's native platform flag at 390×
 - Screenshot receipts demonstrate print CSS, not hardware-compatible ESC/POS output.
 
 Future tests and release gates are in [PRODUCTION_ROADMAP.md](PRODUCTION_ROADMAP.md) and the unchanged [reference security document](reference/SECURITY_AND_TESTS.md).
+
+## Owner artifact and device boundaries — 14 October 2026
+
+The owner artifact was tested as the exact generated HTML served from a temporary local HTTP server. The managed Chromium policy blocked direct `file://` navigation, so direct file opening on a client phone/desktop is not a passed check. The four checks cover owner-only entry, five Standard tables, exact embedded original logo, explicit local/not-connected status, rates/prices/HPP/restock with retained active-session snapshots, offline actions, persisted edits after online reload, CSV download, mobile width and no external asset requests. Screenshot: `owner-file-mobile.png`. No owner server or URL was deployed. The portable file does not register a service worker.
+
+Seven device-boundary tests cover monochrome raster bit order/alpha/padding and bounds; safe text wrapping/control sanitization/balances/demo marking; explicit raster/cutter/profile settings; disconnected/unsupported printer rejection and submitted-only semantics; fake USB/Classic Bluetooth/BLE/TCP adapters; concurrent EDC request deduplication and changed-bill rejection; timeout/lookup without repurchase; mismatched approvals, decline and invalid amounts. No actual native transport or bank SDK was invoked. Memory-only duplicate protection is not production idempotency.
+
+The main browser suite also verifies receipt black text and grayscale rendering of the original logo. Browser print screenshots remain distinct from actual thermal paper tests. Build/lint/tests above were rerun for these changes. The APK binary below is the previously verified 0.1.1 release and was not rebuilt for these web changes.
 
 ## Android APK validation
 

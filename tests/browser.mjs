@@ -68,7 +68,9 @@ try {
   assert.equal((await state()).tables[2].session.payments.length,2);pass('partial cash and simulated QRIS settle once; pending did not count as paid');
   await page.locator('.session-panel').getByRole('button',{name:'Preview / cetak bill'}).click();
   assert.match(await page.locator('.receipt').innerText(),/RECEIPT · LUNAS/);assert.ok(await page.locator('.receipt img').evaluate(el=>el.complete));
-  await page.emulateMedia({media:'print'});await page.screenshot({path:resolve(screenshots,'receipt-80mm.png'),fullPage:true});await page.emulateMedia({media:'screen'});await closeDialog();pass('paid receipt uses original logo and 80mm print stylesheet');
+  assert.equal(await page.locator('.receipt').evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)');
+  assert.equal(await page.locator('.receipt img').evaluate(el=>getComputedStyle(el).filter),'grayscale(1)');
+  await page.emulateMedia({media:'print'});await page.screenshot({path:resolve(screenshots,'receipt-80mm.png'),fullPage:true});await page.emulateMedia({media:'screen'});await closeDialog();pass('paid receipt uses original logo in grayscale, black text and 80mm print stylesheet');
   await page.locator('.session-panel').getByRole('button',{name:'Selesaikan & checkout'}).click();assert.equal((await state()).tables[2].state,'cleaning');
   await page.getByRole('button',{name:'Tandai meja siap'}).click();assert.equal((await state()).tables[2].state,'available');pass('checkout archives charges/payments and requires cleaning before ready');
   assert.equal(await page.getByRole('button',{name:'Buka demo owner',exact:false}).count(),0);assert.equal(await page.getByRole('button',{name:'Reset demo',exact:true}).count(),0);

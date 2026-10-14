@@ -87,7 +87,7 @@ export function Owner({ state, now, view, onDialog, onAction, onView }: {
         <div className="section-heading spaced">
         <div>
         <h2>Monitoring meja</h2>
-        <p className="muted small">Status lokal bersama antarmuka kasir</p>
+        <p className="muted small">Status data demo di perangkat ini</p>
         </div>
         <div className="live-label">
         <span />Lima meja</div>

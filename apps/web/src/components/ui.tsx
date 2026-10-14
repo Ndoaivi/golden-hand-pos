@@ -67,6 +67,10 @@ const paths: Record<string, ReactNode> = {
     alert: <>
     <path d="m12 3 10 18H2ZM12 9v5m0 3h.1"/>
     </>,
+    info: <>
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 11v6m0-10h.1"/>
+    </>,
     print: <>
     <path d="M7 7V2h10v5M7 17H4V8h16v9h-3M7 13h10v9H7Z"/>
     <path d="M17 10h.1"/>
@@ -92,7 +96,7 @@ export function Brand({ large = false }: {
     large?: boolean;
 }) {
     return <div className={`brand ${large ? 'brand-large' : ''}`}>
-    <img src="/brand/golden-hand-original.jpg" alt="Logo asli GOLDEN HAND MAHJONG" width="1280" height="995"/>
+    <img src={document.documentElement.dataset.brandImage ?? '/brand/golden-hand-original.jpg'} alt="Logo asli GOLDEN HAND MAHJONG" width="1280" height="995"/>
     <span className="sr-only">GOLDEN HAND MAHJONG</span>
     </div>;
 }

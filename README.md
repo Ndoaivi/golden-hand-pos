@@ -36,6 +36,7 @@ An installable **Android cashier demo** is now available. See [APK installation 
 - Shared local state across cashier/owner tabs on the same browser origin. Owner edits apply to future sessions/orders; historical snapshots remain unchanged.
 - Owner catalog, prices, rental rates, restock/adjustment with reasons, gross-profit reports, CSV export, staff profiles, shift reconciliation, approval statuses, and local audit trail.
 - Bill and paid receipt previews with the original logo and **80 mm print CSS**. Browser print is implemented; native ESC/POS is not.
+- Web receipts use black text/lines and a grayscale rendering of the unchanged original logo. Printer/EDC adapter contracts and an ESC/POS encoder are available for future device-specific integration; no device transport or bank SDK is connected.
 - Loading, empty, expired, low-stock, pending-payment, offline, validation-error, and corrupt-data recovery states.
 
 QRIS/transfer buttons are clearly labelled **demo**. They do not initiate payments, display a real QR, contact a gateway, or verify a bank transaction. Approval decisions change demo status only, without ledger or inventory reversal. Staff profiles do not create Supabase users or grant real access.
@@ -59,6 +60,7 @@ apps/
     src/styles.css                Light responsive design system
   api/README.md                   Reserved Cloudflare Workers boundary
 packages/domain/                 Typed shared rules, fixtures and validators
+packages/devices/                ESC/POS encoder and future printer/EDC adapter contracts
 infra/database/README.md         Reserved database/migration boundary
 tests/                           Domain and browser acceptance checks
 scripts/build-android.mjs        Debug APK build, Android lint and checksum packaging
@@ -76,6 +78,8 @@ npm run build
 npm run lint
 npm test
 npm run test:e2e
+npm run owner:preview
+npm run test:owner-preview
 ```
 
 The browser suite serves the built files on a temporary localhost port, launches Chromium, tests the main workflows and viewport sizes, then closes the server. It does not deploy anything. By default it uses `/usr/bin/chromium`; set `PLAYWRIGHT_CHROMIUM_PATH` to a locally installed Chromium if needed. Browser tests require local socket/process permissions.
@@ -84,6 +88,6 @@ Validation results and exact coverage are in [docs/TESTING.md](docs/TESTING.md).
 
 ## Handover and next phase
 
-Read [implementation notes](docs/IMPLEMENTATION.md), [BCA EDC integration options](docs/EDC_BCA.md), and [production roadmap](docs/PRODUCTION_ROADMAP.md). Resetting the demo is available only in the owner interface and deletes local transactions; use the JSON backup export first. The previous Golden Hand demo dataset upgrades automatically to five Standard tables. Its exact JSON is backed up under the existing storage key plus `-before-standard`; financial snapshots, pending quotes, and outstanding balances are preserved. Historical bill labels may retain the old class name, without keeping a VIP table or rate setting. The original reference prototypes used separate datasets and remain unchanged.
+Read [owner demo instructions and remote connection requirements](docs/OWNER_DEMO.md), [printer/EDC implementation boundaries](docs/DEVICES.md), [implementation notes](docs/IMPLEMENTATION.md), [BCA EDC integration options](docs/EDC_BCA.md), and [production roadmap](docs/PRODUCTION_ROADMAP.md). Resetting the demo is available only in the owner interface and deletes local transactions; use the JSON backup export first. The previous Golden Hand demo dataset upgrades automatically to five Standard tables. Its exact JSON is backed up under the existing storage key plus `-before-standard`; financial snapshots, pending quotes, and outstanding balances are preserved. Historical bill labels may retain the old class name, without keeping a VIP table or rate setting. The original reference prototypes used separate datasets and remain unchanged.
 
 **Phase 1 ends here. Backend and payment integration require owner approval. No production deployment is authorized.**

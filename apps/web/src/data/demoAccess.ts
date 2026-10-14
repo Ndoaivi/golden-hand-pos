@@ -7,7 +7,16 @@ export const portalPaths: Record<Role, string> = { cashier: '/pos', owner: '/adm
 export function portalFromPath(path: string): Role {
     // The APK is a cashier preview. Production access still requires server RBAC.
     if (Capacitor.isNativePlatform()) return 'cashier';
+    // A self-contained owner test file has its own entry; this is still demo routing.
+    if (document.documentElement.dataset.demoPortal === 'owner') return 'owner';
     return path.replace(/\/$/, '') === portalPaths.owner ? 'owner' : 'cashier';
+}
+
+export function replaceDemoPath(portal: Role): void {
+    // File/content URLs cannot safely change their pathname with the History API.
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        window.history.replaceState({}, '', portalPaths[portal]);
+    }
 }
 
 function sessionKey(portal: Role): string {

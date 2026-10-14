@@ -1,5 +1,11 @@
 # Phase 1 implementation notes
 
+## Owner test artifact and device boundaries — 14 October 2026
+
+The owner interface now states that its demo data is local and is not connected to the cashier APK. `npm run owner:preview` embeds the compiled frontend, styles and unchanged logo into one owner-only HTML entry. It does not deploy or configure a shared service. See [OWNER_DEMO.md](OWNER_DEMO.md) for browser limitations and the remaining remote-sync work.
+
+Receipt styling uses black text/lines and grayscale logo rendering. `packages/devices` separates the 80 mm ESC/POS encoder and printer/EDC adapter interfaces from domain accounting. Tests use fake transports/terminals only. There is no native transport, bank SDK or ledger integration. See [DEVICES.md](DEVICES.md). The previously distributed APK remains unchanged at 0.1.1-demo; this frontend change has not been packaged as a new Android build.
+
 ## Reference inspection
 
 The original repository contained a launcher, two self-contained Indonesian HTML prototypes, a draft SQL schema, and architecture/API/business/security documents. There was no React application, package manager, backend service, or authentication implementation.
