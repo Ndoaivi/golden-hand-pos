@@ -1908,6 +1908,7 @@ td small {
 .receipt .brand {
   width: 120px;
   margin: 0 auto 14px;
+  background: transparent;
 }
 .receipt h3 {
   text-align: center;
@@ -2167,8 +2168,9 @@ td small {
 }
 .receipt .brand img {
   mask-image: none;
-  mix-blend-mode: normal;
-  filter: grayscale(1);
+  mix-blend-mode: multiply;
+  /* Render the original dark photo background white, retaining its geometry. */
+  filter: grayscale(1) invert(1) contrast(5);
 }
 @media(min-width:1600px) {
   main {

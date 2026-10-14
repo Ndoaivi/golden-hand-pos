@@ -41,7 +41,7 @@ The owner artifact was tested as the exact generated HTML served from a temporar
 
 Seven device-boundary tests cover monochrome raster bit order/alpha/padding and bounds; safe text wrapping/control sanitization/balances/demo marking; explicit raster/cutter/profile settings; disconnected/unsupported printer rejection and submitted-only semantics; fake USB/Classic Bluetooth/BLE/TCP adapters; concurrent EDC request deduplication and changed-bill rejection; timeout/lookup without repurchase; mismatched approvals, decline and invalid amounts. No actual native transport or bank SDK was invoked. Memory-only duplicate protection is not production idempotency.
 
-The main browser suite also verifies receipt black text and grayscale rendering of the original logo. Browser print screenshots remain distinct from actual thermal paper tests. Build/lint/tests above were rerun for these changes. The APK binary below is the previously verified 0.1.1 release and was not rebuilt for these web changes.
+The main browser suite also verifies receipt black text, monochrome rendering of the unchanged original logo, and its transparent wrapper. Receipt-specific grayscale/inversion/contrast blends the dark photo background into white paper. `receipt-logo-white.png` shows the receipt preview without the dark logo rectangle; `receipt-80mm.png` shows print media. Browser print screenshots remain distinct from actual thermal paper tests. Build/lint/tests above were rerun for these changes. The APK binary below is the previously verified 0.1.1 release and was not rebuilt for these web changes.
 
 ## Android APK validation
 

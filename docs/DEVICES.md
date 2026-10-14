@@ -4,7 +4,7 @@ Model printer belum dipilih. Bank EDC adalah BCA; model terminal dan dukungan EC
 
 ## Struk hitam-putih
 
-Preview web memakai teks dan garis hitam, kertas putih, serta logo asli dengan CSS grayscale. File logo tidak diubah; proporsi tetap dipertahankan. Browser print memakai aturan 80 mm. APK yang sudah dibagikan hanya memiliki preview; tombol cetak native tetap nonaktif.
+Preview web memakai teks dan garis hitam, kertas putih, serta logo asli dengan CSS monokrom. Pada struk, grayscale/inversion/contrast membuat latar foto gelap menjadi putih, dan wrapper transparan dengan blend multiply menyatukannya dengan kertas. Tidak ada kotak gelap di sekitar logo. Ini pengaturan render untuk kertas putih, bukan file PNG transparan baru. File logo tidak diubah; proporsi tetap dipertahankan. Browser print memakai aturan 80 mm. APK yang sudah dibagikan hanya memiliki preview; tombol cetak native tetap nonaktif.
 
 `packages/devices` menyediakan encoder ESC/POS 80 mm dan kontrak `ThermalPrinterAdapter`. Profil mengatur kolom, lebar dot, code page dan cutter. Default memakai 48 kolom/576 dot, ASCII aman, tanpa cutter. Raster logo menerima RGBA yang sudah diskalakan dengan rasio asli, diubah menjadi bit hitam-putih dan dikomposit pada putih. GS v 0 adalah profil kompatibilitas lama; model lain dapat memerlukan command raster berbeda. Lihat [referensi Epson](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_lv_0.html).
 

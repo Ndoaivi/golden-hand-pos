@@ -36,7 +36,7 @@ An installable **Android cashier demo** is now available. See [APK installation 
 - Shared local state across cashier/owner tabs on the same browser origin. Owner edits apply to future sessions/orders; historical snapshots remain unchanged.
 - Owner catalog, prices, rental rates, restock/adjustment with reasons, gross-profit reports, CSV export, staff profiles, shift reconciliation, approval statuses, and local audit trail.
 - Bill and paid receipt previews with the original logo and **80 mm print CSS**. Browser print is implemented; native ESC/POS is not.
-- Web receipts use black text/lines and a grayscale rendering of the unchanged original logo. Printer/EDC adapter contracts and an ESC/POS encoder are available for future device-specific integration; no device transport or bank SDK is connected.
+- Web receipts use black text/lines and a monochrome rendering of the unchanged original logo on white paper, without the dark rectangular photo background. Printer/EDC adapter contracts and an ESC/POS encoder are available for future device-specific integration; no device transport or bank SDK is connected.
 - Loading, empty, expired, low-stock, pending-payment, offline, validation-error, and corrupt-data recovery states.
 
 QRIS/transfer buttons are clearly labelled **demo**. They do not initiate payments, display a real QR, contact a gateway, or verify a bank transaction. Approval decisions change demo status only, without ledger or inventory reversal. Staff profiles do not create Supabase users or grant real access.
